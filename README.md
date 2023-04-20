@@ -1,3 +1,5 @@
 # CV_BasketAnalysis
+    git submodule init
+    git submodule update
     requirements: pip install -r yolov5/requirements.txt
     train-yolo: python yolov5/train.py --img 416 --cfg yolov5/models/yolov5s.yaml --hyp yolov5/data/hyps/hyp.scratch-med.yaml --batch 32 --epochs 100 --data dataset/data.yaml --weights yolov5s.pt --workers 24 --name yolo_basket_det
