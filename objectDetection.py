@@ -1,19 +1,13 @@
-import torch
+import os
+import random
+from IPython.display import Image  # for displaying images
+from PIL import Image, ImageDraw
+import matplotlib.pyplot as plt
+import numpy as np
 
-# Model
-model = torch.hub.load('yolov5', 'yolov5s', source='local')
+detections_dir = "yolov5/runs/detect/yolo_basket_det/"
+detection_images = [os.path.join(detections_dir, x) for x in os.listdir(detections_dir)]
 
-# Image
-im = r"C:\Users\Computer\Desktop\prova4.jpg"
-
-# Inference
-results = model(im)
-
-results.pandas().xyxy[0]
-#      xmin    ymin    xmax   ymax  confidence  class    name
-# 0  749.50   43.50  1148.0  704.5    0.874023      0  person
-# 1  433.50  433.50   517.5  714.5    0.687988     27     tie
-# 2  114.75  195.75  1095.0  708.0    0.624512      0  person
-# 3  986.00  304.00  1028.0  420.0    0.286865     27     tie
-
-print(results)
+random_detection_image = Image.open(random.choice(detection_images))
+plt.imshow(np.array(random_detection_image))
+plt.show()
