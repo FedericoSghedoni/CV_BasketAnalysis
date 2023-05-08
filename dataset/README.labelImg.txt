@@ -1,0 +1,1 @@
+exiftool -all= CV_BasketAnalysis\dataset\ours\images
