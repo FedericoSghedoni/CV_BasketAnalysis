@@ -7,4 +7,4 @@
 
     weights path: yolov5/runs/train/yolo_basket_det
     
-    inference-yolo: python yolov5/detect.py --source dataset/test/images --weights yolov5/runs/train/yolo_basket_det/weights/best.pt --conf 0.25 --name yolo_basket_det_PDataset
+    inference-yolo: python yolov5/detect.py --source dataset/test/images --weights yolov5/runs/train/yolo_basket_det_PDataset/weights/best.pt --conf 0.25 --name yolo_basket_det_PDataset
