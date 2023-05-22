@@ -10,4 +10,4 @@
     
     inference-yolo: python yolo5/detect.py --source dataset/test/images --weights yolo5/runs/train/yolo_basket_det_PDataset/weights/best.pt --conf 0.25 --name yolo_basket_det_PDataset
 
-    use with camera: python yolo5/detect.py --weights yolo5/runs/train/yolo_basket_det_PDataset/weights/best.pt --source 0
+    use with camera: python yolo5/detect.py --weights yolo5/runs/train/yolo_basket_det_PDataset/weights/best.pt --source 0 --nosave True
