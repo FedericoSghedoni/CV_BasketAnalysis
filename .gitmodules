@@ -2,3 +2,6 @@
 [submodule "yolos5"]
 	path = yolo5
 	url = https://github.com/FedericoSghedoni/yolo5
+[submodule "deep_sort"]
+	path = deep_sort
+	url = https://github.com/PaoloAttardi/deep_sort
