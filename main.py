@@ -3,7 +3,6 @@ import torch
 import numpy as np
 
 from filterpy.kalman import KalmanFilter
-# from deep_sort_realtime.deepsort_tracker import DeepSort
 
 Path = 'C:/Users/Computer/Documents/GitHub/CV_BasketAnalysis/'
 
@@ -21,9 +20,9 @@ def detect_objects(frame, model, kalmanFilter):
             class_name = model.names[class_index]
 
             # Se l'oggetto viene identificato come una basketball effettua la predizione della sua traiettoria
-            if class_name == 'basketball' and result[i,4] >= 0.4:
+            if class_name == 'basketball':
                 filtered_x, filtered_y = track_objects(result[i], kalmanFilter)
-                cv2.circle(frame, (int(filtered_x), int(filtered_y)), 5, (0, 255, 0), -1)
+                cv2.circle(frame, (int(filtered_x), int(filtered_y)), 5, (0, 255, 0))
             # Visualizza classe e coordinate delle bounding box
             # print("Classe:", class_name)
             # print("Coordinate bounding box:", result[i,0:4])
@@ -53,8 +52,8 @@ def track_objects(detections, kalman_filter):
     return filtered_x, filtered_y
 
 # Loop principale del video
-model = torch.hub.load('ultralytics/yolov5', 'custom',
-                            path=f"{Path}yolo5/runs/train/yolo_basket_det_PDataset/weights/best.pt", force_reload=True)
+model = torch.hub.load(f'{Path}yolo5', 'custom',
+                            path=f"{Path}yolo5/runs/train/yolo_basket_det_PDataset/weights/best.pt",source='local', force_reload=True)
 
 kalman_filter = KalmanFilter(dim_x=4, dim_z=2)
 kalman_filter.F = np.array([[1, 0, 1, 0],
@@ -71,12 +70,15 @@ kalman_filter.Q = np.array([[0.1, 0, 0, 0],
                             [0, 0, 0.1, 0],
                             [0, 0, 0, 0.1]])
 
+cap = cv2.VideoCapture(f'{Path}dataset/ours/video/video2.mp4')
+ret, frame = cap.read()
+
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 fps = 24
-frame_width, frame_height = 640, 480
+frame_width = frame.shape[1]
+frame_height = frame.shape[0]
 video_writer = cv2.VideoWriter('video_detections.mp4', fourcc, fps, (frame_width, frame_height))
 
-cap = cv2.VideoCapture(f'{Path}dataset/ours/video/video3.mp4')
 while cap.isOpened():
     
     ret, frame = cap.read()
@@ -86,7 +88,7 @@ while cap.isOpened():
 
     # Rileva e traccia gli oggetti nel frame
     new_frame = detect_objects(frame, model, kalman_filter)
-    video_writer.write(frame)
+    video_writer.write(new_frame)
 
 video_writer.release()
 cap.release()
