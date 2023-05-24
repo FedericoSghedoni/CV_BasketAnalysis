@@ -2,13 +2,16 @@ import cv2
 import torch
 import numpy as np
 
-from deep_sort_realtime.deepsort_tracker import DeepSort
+from filterpy.kalman import KalmanFilter
+# from deep_sort_realtime.deepsort_tracker import DeepSort
 
 Path = 'C:/Users/Computer/Documents/GitHub/CV_BasketAnalysis/'
 
-def detect_objects(frame, model, tracker):
+def detect_objects(frame, model, kalmanFilter):
     detections = model(frame)
-
+    # To show the detection use the line below
+    # detections.show()
+    detections.save()
     for result in detections.xywh:
         # Ottieni le coordinate del bounding box
 
@@ -17,32 +20,63 @@ def detect_objects(frame, model, tracker):
             class_index = int(result[i,5])
             class_name = model.names[class_index]
 
-            if class_name == 'basketball':
-                track_objects(frame, result[i], tracker)
-            
+            # Se l'oggetto viene identificato come una basketball effettua la predizione della sua traiettoria
+            if class_name == 'basketball' and result[i,4] >= 0.4:
+                filtered_x, filtered_y = track_objects(result[i], kalmanFilter)
+                cv2.circle(frame, (int(filtered_x), int(filtered_y)), 5, (0, 255, 0), -1)
             # Visualizza classe e coordinate delle bounding box
             # print("Classe:", class_name)
             # print("Coordinate bounding box:", result[i,0:4])
 
-    return detections
+    return frame
 
-def track_objects(frame, detections, tracker):
+def track_objects(detections, kalman_filter):
+    x,y,w,h = detections[0:4]
+    x,y,w,h = x.item(),y.item(),w.item(),h.item()
+    kalman_filter.x = np.array([x, y, 0, 0]).reshape(4, 1)
     # detections expected to be a list of detections, each in tuples of ( [left,top,w,h], confidence, detection_class )
-    print(detections)
-    print((np.array(detections[0:4]).tolist(),detections[4].item(),detections[5].item()))
-    tracks = tracker.update_tracks((detections), frame=frame) 
-    for track in tracks:
-        if not track.is_confirmed():
-            continue
-        track_id = track.track_id
-        ltrb = track.to_ltrb()
-        print(track_id, ltrb)
+    # Genera la nuova misurazione della posizione della palla (simulata)
+    z = np.array([[x + np.random.randn(1)[0] * 2],
+                    [y + np.random.randn(1)[0] * 2]])
+
+    # Previsione del filtro di Kalman
+    kalman_filter.predict()
+
+    # Aggiornamento del filtro di Kalman con la nuova misurazione
+    kalman_filter.update(z)
+
+    # Recupero della posizione filtrata della palla
+    filtered_state = kalman_filter.x
+    filtered_x = filtered_state[0][0]
+    filtered_y = filtered_state[1][0]
+
+    return filtered_x, filtered_y
 
 # Loop principale del video
-cap = cv2.VideoCapture(f'{Path}dataset/ours/video/video3.mp4')
 model = torch.hub.load('ultralytics/yolov5', 'custom',
                             path=f"{Path}yolo5/runs/train/yolo_basket_det_PDataset/weights/best.pt", force_reload=True)
-tracker = DeepSort(max_age=5)
+
+kalman_filter = KalmanFilter(dim_x=4, dim_z=2)
+kalman_filter.F = np.array([[1, 0, 1, 0],
+                            [0, 1, 0, 1],
+                            [0, 0, 1, 0],
+                            [0, 0, 0, 1]])
+kalman_filter.H = np.array([[1, 0, 0, 0],
+                            [0, 1, 0, 0]])
+kalman_filter.P *= 1000
+kalman_filter.R = np.array([[0.1, 0],
+                            [0, 0.1]])
+kalman_filter.Q = np.array([[0.1, 0, 0, 0],
+                            [0, 0.1, 0, 0],
+                            [0, 0, 0.1, 0],
+                            [0, 0, 0, 0.1]])
+
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+fps = 24
+frame_width, frame_height = 640, 480
+video_writer = cv2.VideoWriter('video_detections.mp4', fourcc, fps, (frame_width, frame_height))
+
+cap = cv2.VideoCapture(f'{Path}dataset/ours/video/video3.mp4')
 while cap.isOpened():
     
     ret, frame = cap.read()
@@ -51,20 +85,9 @@ while cap.isOpened():
         break
 
     # Rileva e traccia gli oggetti nel frame
-    results = detect_objects(frame, model, tracker)
-    break
+    new_frame = detect_objects(frame, model, kalman_filter)
+    video_writer.write(frame)
 
-    # Visualizza il frame con le informazioni di tracciamento
-    for obj in tracked_objects:
-        cv2.rectangle(frame, (obj.left, obj.top), (obj.right, obj.bottom), (0, 255, 0), 2)
-        cv2.putText(frame, obj.class_name, (obj.left, obj.top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-
-    if shot_detected:
-        cv2.putText(frame, "Tiro verso il canestro!", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-
-    cv2.imshow('Frame', frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
+video_writer.release()
 cap.release()
 cv2.destroyAllWindows()
