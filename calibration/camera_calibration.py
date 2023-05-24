@@ -61,9 +61,9 @@ cv.destroyAllWindows()
 ret, cameraMatrix, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints, frameSize, None, None)
 
 # Save the camera calibration result for later use (we won't worry about rvecs / tvecs)
-pickle.dump((cameraMatrix, dist), open( "calibration.pkl", "wb" ))
-pickle.dump(cameraMatrix, open( "cameraMatrix.pkl", "wb" ))
-pickle.dump(dist, open( "dist.pkl", "wb" ))
+pickle.dump((cameraMatrix, dist), open( "calibration/calibration.pkl", "wb" ))
+pickle.dump(cameraMatrix, open( "calibration/cameraMatrix.pkl", "wb" ))
+pickle.dump(dist, open( "calibration/dist.pkl", "wb" ))
 
 
 ############## UNDISTORTION #####################################################
@@ -80,7 +80,7 @@ dst = cv.undistort(img, cameraMatrix, dist, None, newCameraMatrix)
 # crop the image
 x, y, w, h = roi
 dst = dst[y:y+h, x:x+w]
-cv.imwrite('caliResult1.png', dst)
+cv.imwrite('calibration/caliResult1.png', dst)
 
 
 
@@ -91,7 +91,7 @@ dst = cv.remap(img, mapx, mapy, cv.INTER_LINEAR)
 # crop the image
 x, y, w, h = roi
 dst = dst[y:y+h, x:x+w]
-#cv.imwrite('caliResult2.png', dst)
+cv.imwrite('calibration/caliResult2.png', dst)
 
 
 
