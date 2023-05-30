@@ -12,7 +12,7 @@ for filename in os.listdir(directory):
     name = filename[:size - 3]
     target = name + 'txt'
     for files in os.listdir(sourcedir):
-        if target in files:
+        if target not in files:
             src = os.path.join(sourcedir, target)
             dest = os.path.join(destdir, target)
             os.rename(src, dest)
