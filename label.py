@@ -3,32 +3,41 @@ import cv2
 import glob
 import torch
 
-def choose_labels(filename):
-    # To show the detection use the line below
-    detections.show()
-    x = input('0/1/2: ')
+def sub_label(filename):
+    # get the name of the new file where it will store the new labels
+    size = len(filename)
+    name = filename[:size - 3]
+    target = 'checked/' + name + 'txt'
 
-    if x == '1':
-        size = len(filename)
-        name = filename[:size - 3]
-        target = 'label/' + name + 'txt'
-        with open(target, 'w') as f:
+    with open(target, 'w') as f:
+        for result in detections.xywh:
+            for i in range(result.shape[0]):
+                # Ottieni la classe associata
+                class_index = int(result[i,5])
+                # Ottieni le coordinate del bounding box
+                x,y,w,h = result[i,0:4]/416
+                to_write = str(class_index) + ' ' + str(x.item()) + ' ' + str(y.item()) + ' ' + str(w.item()) + ' ' + str(h.item()) + '\n'
+                # write the results in the file
+                f.write(to_write)
+    
+def del_image(filename, image):
+    dest = 'checked/' + filename
+    os.rename(image, dest)
 
-            for result in detections.xywh:
-                for i in range(result.shape[0]):
-                    # Ottieni la classe associata
-                    class_index = int(result[i,5])
-                    # Ottieni le coordinate del bounding box
-                    x,y,w,h = result[i,0:4]/416
-                    to_write = str(class_index) + ' ' + str(x.item()) + ' ' + str(y.item()) + ' ' + str(w.item()) + ' ' + str(h.item()) + '\n'
-                    f.write(to_write)
+def keep_label():
+    destdir = 'dataset/train/checked'
 
-    if x == '2':
-        dest = 'bin/' + filename
-        os.rename(image, dest)
-
+def switch(x, image):
+    filename = image.split('\\')[1]
     if x == '0':
         return True
+    if x == '1':
+        sub_label(filename)
+    if x == '2':
+        del_image(filename)
+    if x == '3':
+        keep_label(filename, image)
+    return False
 
 images = glob.glob('dataset/train/images/*.jpg')
 Path = 'C:/Users/Computer/Documents/GitHub/CV_BasketAnalysis/'
@@ -49,10 +58,17 @@ for image in images:
                     # Ottieni la classe associata
                     class_index = int(result[i,5])
                     if class_index == '0':
-                        dest = 'bin/' + filename
-                        os.rename(image, dest)
+                        del_image(filename)
+                    else:
+                        keep_label(filename, image)
 
     else:
-        check = choose_labels(filename)
+        detections.show()
+        # insert 0 to stop
+        # insert 1 to substitute with the new label
+        # insert 2 to move the image in the bin folder
+        # insert 3 to keep the old label
+        x = input('0/1/2/3: ')
+        check = switch(x, image)
         if check:
             break
