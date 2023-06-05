@@ -10,38 +10,38 @@ def detect_objects(frame, model, kalmanFilter):
     detections = model(frame)
     # To show the detection use the line below
     # detections.show()
-    detections.save()
+
     for result in detections.xywh:
-        # Ottieni le coordinate del bounding box
+        # Get the bounding box coordinates
 
         for i in range(result.shape[0]):
-            # Ottieni la classe associata
+            # Get the object class
             class_index = int(result[i,5])
             class_name = model.names[class_index]
 
-            # Se l'oggetto viene identificato come una basketball effettua la predizione della sua traiettoria
+            # If the object is a Basketball make a prediction of its trajectory
             if class_name == 'basketball':
-                filtered_x, filtered_y = track_objects(result[i], kalmanFilter)
-                cv2.circle(frame, (int(filtered_x), int(filtered_y)), 5, (0, 255, 0))
-            # Visualizza classe e coordinate delle bounding box
-            # print("Classe:", class_name)
-            # print("Coordinate bounding box:", result[i,0:4])
+                x,y = result[i,0:2]
+                # Predict the trajectory in the next 12 frames
+                for i in range(12):
+                    filtered_x, filtered_y = track_objects(x.item(), y.item(), kalmanFilter)
+                    if i==0 or i == 5 or i == 11:
+                        cv2.circle(detections.render()[0], (int(filtered_x), int(filtered_y)), 2, (0, 255, 0), thickness=3)
+                    x,y = filtered_x,filtered_y
 
-    return frame
+    return detections.render()[0]
 
-def track_objects(detections, kalman_filter):
-    x,y,w,h = detections[0:4]
-    x,y,w,h = x.item(),y.item(),w.item(),h.item()
+def track_objects(x, y, kalman_filter):
     kalman_filter.x = np.array([x, y, 0, 0]).reshape(4, 1)
     # detections expected to be a list of detections, each in tuples of ( [left,top,w,h], confidence, detection_class )
-    # Genera la nuova misurazione della posizione della palla (simulata)
+    # Generate the new estimate position
     z = np.array([[x + np.random.randn(1)[0] * 2],
                     [y + np.random.randn(1)[0] * 2]])
 
-    # Previsione del filtro di Kalman
+    # Kalman's Filter prediction
     kalman_filter.predict()
 
-    # Aggiornamento del filtro di Kalman con la nuova misurazione
+    # Update of the kalman's filter with the new position
     kalman_filter.update(z)
 
     # Recupero della posizione filtrata della palla
@@ -52,9 +52,11 @@ def track_objects(detections, kalman_filter):
     return filtered_x, filtered_y
 
 # Loop principale del video
+# Load yolov5 model 
 model = torch.hub.load(f'{Path}yolo5', 'custom',
                             path=f"{Path}yolo5/runs/train/yolo_basket_det_PDataset/weights/best.pt",source='local', force_reload=True)
 
+# Inizialize Kalman Filter 
 kalman_filter = KalmanFilter(dim_x=4, dim_z=2)
 kalman_filter.F = np.array([[1, 0, 1, 0],
                             [0, 1, 0, 1],
@@ -70,7 +72,7 @@ kalman_filter.Q = np.array([[0.1, 0, 0, 0],
                             [0, 0, 0.1, 0],
                             [0, 0, 0, 0.1]])
 
-cap = cv2.VideoCapture(f'{Path}dataset/ours/video/video2.mp4')
+cap = cv2.VideoCapture(f'{Path}dataset/ours/video/video1.mp4')
 ret, frame = cap.read()
 
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
@@ -87,6 +89,7 @@ while cap.isOpened():
         break
 
     # Rileva e traccia gli oggetti nel frame
+    # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     new_frame = detect_objects(frame, model, kalman_filter)
     video_writer.write(new_frame)
 
