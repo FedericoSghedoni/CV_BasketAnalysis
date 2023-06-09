@@ -44,7 +44,7 @@ def switch(x, image):
     return False
 
 images = glob.glob('dataset/train/images/*.jpg')
-Path = 'C:/Users/Computer/Documents/GitHub/CV_BasketAnalysis/'
+Path = 'C:/Users/acer/Documents/GitHub/CV_BasketAnalysis/'
 model = torch.hub.load(f'{Path}yolo5', 'custom',
                             path=f"{Path}yolo5/runs/train/yolo_basket_det_PDataset/weights/best.pt",source='local', force_reload=True)
 
