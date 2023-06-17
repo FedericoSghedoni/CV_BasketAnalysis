@@ -14,4 +14,4 @@ for filename in os.listdir(directory):
         if target in files:
             src = sourcedir + '/' + target
             dest = destdir + '/' + target
-            os.rename(src, dest)
+            os.rename(src,dest)

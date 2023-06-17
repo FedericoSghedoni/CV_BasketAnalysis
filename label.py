@@ -63,7 +63,7 @@ for image in images:
             for i in range(result.shape[0]):
                 # Ottieni la classe associata
                 class_index = int(result[i,5])
-                if class_index == '0':
+                if class_index == 0:
                     check = switch(x='2',image=image)
                 else:
                     check = switch(x='3', image=image)
