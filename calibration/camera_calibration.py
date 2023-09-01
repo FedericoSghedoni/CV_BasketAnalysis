@@ -3,12 +3,13 @@ import cv2 as cv
 import glob
 import pickle
 
+#py calibration/camera_calibration.py
 
 
 ################ FIND CHESSBOARD CORNERS - OBJECT POINTS AND IMAGE POINTS #############################
 
-chessboardSize = (9,7)
-frameSize = (800,1067)
+chessboardSize = (7,5)
+frameSize = (756,1008)
 
 
 
@@ -29,7 +30,7 @@ objpoints = [] # 3d point in real world space
 imgpoints = [] # 2d points in image plane.
 
 
-images = glob.glob('calibration/images/*.jpg')
+images = glob.glob('calibration/images\*.jpg')
 
 for image in images:
 
@@ -68,7 +69,7 @@ pickle.dump(dist, open( "calibration/dist.pkl", "wb" ))
 
 ############## UNDISTORTION #####################################################
 
-img = cv.imread('calibration/images/IMG_3500.jpg')
+img = cv.imread('calibration/images/IMG_3988.jpg')
 h,  w = img.shape[:2]
 newCameraMatrix, roi = cv.getOptimalNewCameraMatrix(cameraMatrix, dist, (w,h), 1, (w,h))
 
