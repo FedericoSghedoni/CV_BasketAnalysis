@@ -47,7 +47,6 @@ class Tokenizer():
         
     def detect_objects(self, frame):
         detections = self.detector(frame)
-        # kalman_filter = Kalman(height=frame.shape[0],width=frame.shape[1])
         # To show the detection use the line below
         # detections.show()
         self.embedded_feature = detections[0].boxes.xywhn

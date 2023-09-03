@@ -8,7 +8,7 @@ def sub_label(filename):
     # get the name of the new file where it will store the new labels
     size = len(filename)
     name = filename[:size - 3]
-    target = 'train/checked_label/' + name + 'txt'
+    target = 'dataset/train/checked_label/' + name + 'txt'
 
     with open(target, 'w') as f:
         for result in detections.xywh:
@@ -20,15 +20,15 @@ def sub_label(filename):
                 to_write = str(class_index) + ' ' + str(x.item()) + ' ' + str(y.item()) + ' ' + str(w.item()) + ' ' + str(h.item()) + '\n'
                 # write the results in the file
                 f.write(to_write)
-    dest = 'train/checked_images/' + filename
+    dest = 'dataset/train/checked_images/' + filename
     shutil.move(image, dest)
     
 def del_image(filename, image):
-    dest = 'train/bin/' + filename
+    dest = 'tdataset/rain/bin/' + filename
     os.rename(image, dest)
 
 def keep_label(filename, image):
-    destdir = 'train/checked_images/' + filename
+    destdir = 'dataset/train/checked_images/' + filename
     os.rename(image, destdir)
 
 def switch(x, image):
@@ -43,10 +43,9 @@ def switch(x, image):
         keep_label(filename, image)
     return False
 
-images = glob.glob('train/images/*.jpg')
-Path = 'C:/Users/Computer/Documents/GitHub/CV_BasketAnalysis/'
-model = torch.hub.load(f'{Path}yolo5', 'custom',
-                            path=f"{Path}yolo5/runs/train/yolo_basket_det_PDataset/weights/best.pt",source='local', force_reload=True)
+images = glob.glob('dataset/train/images/*.jpg')
+model = torch.hub.load('yolo5', 'custom',
+                            path="yolo5/runs/train/yolo_basket_det_PDataset/weights/best.pt",source='local', force_reload=True)
 
 for image in images:
     check = False
