@@ -30,7 +30,7 @@ for video_file in video_files:
         if not ret:
             break  # End of the video file
 
-        results = model(frame)
+        results = model(frame, conf=0.5)
 
         for r in results:
             
