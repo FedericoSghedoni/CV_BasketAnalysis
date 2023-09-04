@@ -6,7 +6,7 @@ from PIL import Image
 from ultralytics import YOLO
 
 # Get the video files in the folder
-video_files = [f for f in os.listdir('dataset/ours/partvideo/') if f.endswith('.mp4')]
+video_files = [f for f in os.listdir('../CVDataset/dataset/ours/video2/') if f.endswith('.mp4')]
 model = YOLO('yolov8s_custom/weights/best.pt')
 classes = torch.Tensor([1., 2., 3.])
 path = 'dataset2/'
@@ -14,7 +14,7 @@ j = 0 # number of opened files, used for naming the new files
 
 for video_file in video_files:
     j += 1
-    video_path = os.path.join('dataset/ours/partvideo/', video_file)
+    video_path = os.path.join('../CVDataset/dataset/ours/video2/', video_file)
 
     # Open the video file
     cap = cv2.VideoCapture(video_path)
@@ -30,7 +30,7 @@ for video_file in video_files:
         if not ret:
             break  # End of the video file
 
-        results = model(frame, conf=0.5)
+        results = model(frame, conf=0.4)
 
         for r in results:
             
@@ -44,8 +44,7 @@ for video_file in video_files:
                 r.save_txt(f'{path}new_labels/video{j}frame{i}.txt')
                 cv2.imwrite(f'{path}new_images/video{j}frame{i}.jpg', frame)
                 im.save(f'{path}detected_files/video{j}frame{i}.jpg')  # save image
-                break
-
 
 cap.release()
 cv2.destroyAllWindows()
+print(j)
