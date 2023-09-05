@@ -5,8 +5,7 @@ from tokenizer import Tokenizer
 
 # Main Loop
 
-# Path = 'C:/Users/Computer/Documents/GitHub/CV_BasketAnalysis/'
-model_path = 'yolov8s_custom/weights/best.pt'
+model_path = 'yolov8s_custom2/weights/best.pt'
 
 cap = cv2.VideoCapture('../CVDataset/dataset/ours/video2/IMG_4008.mp4')
 ret, frame = cap.read()

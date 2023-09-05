@@ -56,21 +56,22 @@ class Tokenizer():
         for r in results:
 
             result_keypoint = r.keypoints.xyn.cpu().numpy()[0]
+
+            if len(result_keypoint) != 0:
             
-            get_keypoint = GetKeypoint()
-            x_elbow, y_elbow = result_keypoint[get_keypoint.RIGHT_ELBOW]
-            x_wrist, y_wrist = result_keypoint[get_keypoint.RIGHT_WRIST]
-            x_shoulder, y_shoulder = result_keypoint[get_keypoint.RIGHT_SHOULDER]
+                get_keypoint = GetKeypoint()
+                x_elbow, y_elbow = result_keypoint[get_keypoint.RIGHT_ELBOW]
+                x_wrist, y_wrist = result_keypoint[get_keypoint.RIGHT_WRIST]
+                x_shoulder, y_shoulder = result_keypoint[get_keypoint.RIGHT_SHOULDER]
 
-            elbow = (x_elbow, y_elbow)  # Sostituisci con le coordinate del gomito
-            wrist = (x_wrist, y_wrist)  # Sostituisci con le coordinate del polso
-            shoulder = (x_shoulder, y_shoulder)  # Sostituisci con le coordinate della spalla
+                elbow = (x_elbow, y_elbow)  # Sostituisci con le coordinate del gomito
+                wrist = (x_wrist, y_wrist)  # Sostituisci con le coordinate del polso
+                shoulder = (x_shoulder, y_shoulder)  # Sostituisci con le coordinate della spalla
 
-            angle = calculate_angle(shoulder, elbow, wrist)
-            new_feature = torch.tensor([angle])
-            self.embedded_feature = self.embedded_feature.reshape(-1)
-            
-            self.embedded_feature = torch.cat((self.embedded_feature, new_feature), dim=0)
+                angle = calculate_angle(shoulder, elbow, wrist)
+                new_feature = torch.tensor([angle])
+                self.embedded_feature = self.embedded_feature.reshape(-1)
+                
+                self.embedded_feature = torch.cat((self.embedded_feature, new_feature), dim=0)
 
-        print(self.embedded_feature)
         return detections[0].plot(), detections[0].boxes
