@@ -8,7 +8,7 @@ from tokenizer import Tokenizer
 # Path = 'C:/Users/Computer/Documents/GitHub/CV_BasketAnalysis/'
 model_path = 'yolov8s_custom/weights/best.pt'
 
-cap = cv2.VideoCapture('dataset/ours/video/video1.mp4')
+cap = cv2.VideoCapture('../CVDataset/dataset/ours/video2/IMG_4008.mp4')
 ret, frame = cap.read()
 
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
