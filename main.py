@@ -5,9 +5,9 @@ from tokenizer import Tokenizer
 
 # Main Loop
 
-model_path = 'yolov8s_custom2/weights/best.pt'
+model_path = 'yolov8s_final/weights/best.pt'
 
-cap = cv2.VideoCapture('../CVDataset/dataset/ours/video2/IMG_4008.mp4')
+cap = cv2.VideoCapture('../CVDataset/dataset/ours/video2/IMG_4009(1).mp4')
 ret, frame = cap.read()
 
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
@@ -33,7 +33,7 @@ while cap.isOpened():
         class_index = int(result.cls.item())
 
         # If the object is a Basketball make a prediction of its trajectory
-        if class_index == 1:
+        if class_index == 0:
             # Get the bounding box coordinates
             x,y = result.xywh[0,0:2]
             kalman_filter.makePrediction(x,y)

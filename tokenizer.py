@@ -17,7 +17,7 @@ def calculate_angle(point1, point2, point3):
     angle_radians = math.acos(dot_product / (norm1 * norm2))
     angle_degrees = math.degrees(angle_radians)
 
-    return angle_degrees
+    return angle_degrees / 180 # Normaalized Value
 
 class GetKeypoint(BaseModel):
     NOSE:           int = 0
@@ -41,7 +41,10 @@ class GetKeypoint(BaseModel):
 class Tokenizer():
 
     def __init__(self, path_to_model) -> None:
-        self.embedded_feature = torch.zeros(4)
+        self.rim_coord = torch.zeros(4) # 4 features x,y,w,h
+        self.ball_coord = torch.zeros(4) # 4 features x,y,w,h
+        self.player_coord = torch.zeros(4) # 4 features x,y,w,h
+        self.embedded_feature = None # rim, player and ball features (12), joint angle and distance from the rim
         self.detector = YOLO(path_to_model)
         self.pose = YOLO('yolov8n-pose.pt')
         
@@ -49,9 +52,17 @@ class Tokenizer():
         detections = self.detector(frame)
         # To show the detection use the line below
         # detections.show()
-        self.embedded_feature = detections[0].boxes.xywhn
+        for detection in detections[0].boxes:
+            class_index = int(detection.cls.item())
+            if class_index == 0: # Basketball
+                self.ball_coord = detection.xywhn
+            elif class_index == 1: # People
+                self.player_coord = detection.xywhn
+            elif class_index == 2: # Rim
+                self.rim_coord = detection.xywhn
+        self.embedded_feature = torch.cat([self.rim_coord, self.ball_coord, self.player_coord])
 
-        results = self.pose.predict(frame, save=True, imgsz=320 , conf = 0.5)
+        results = self.pose.predict(frame, save=False, imgsz=320 , conf = 0.5)
 
         for r in results:
 
@@ -73,5 +84,5 @@ class Tokenizer():
                 self.embedded_feature = self.embedded_feature.reshape(-1)
                 
                 self.embedded_feature = torch.cat((self.embedded_feature, new_feature), dim=0)
-
+        print(self.embedded_feature)
         return detections[0].plot(), detections[0].boxes
