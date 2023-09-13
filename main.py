@@ -15,14 +15,15 @@ fps = 24
 frame_width = frame.shape[1]
 frame_height = frame.shape[0]
 video_writer = cv2.VideoWriter('video_detections2.mp4', fourcc, fps, (frame_width, frame_height))
+i = 0
 
 tokenizer = Tokenizer(model_path)
 kalman_filter = Kalman(height=frame_height, width=frame_width)
 
 while cap.isOpened():
-    
+    i += 1
     ret, frame = cap.read()
-    if not ret:
+    if not ret or i == 10:
         break
 
     # Rileva e traccia gli oggetti nel frame
@@ -42,4 +43,5 @@ while cap.isOpened():
 video_writer.release()
 cap.release()
 cv2.destroyAllWindows()
+print(tokenizer.embedded_feature)
 kalman_filter.showPrediction()
