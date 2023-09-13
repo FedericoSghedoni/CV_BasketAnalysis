@@ -4,8 +4,8 @@ import numpy as np
 
 Path = 'distance/'
 model_path = '../yolov8s_final/weights/best.pt'
-sens1 = 0.085 # distance from camera update sensibility
-sens2 = 0.05 # distance between r and p update sensibility
+sens1 = 0.065 # distance from camera update sensibility
+sens2 = 0.045 # distance between r and p update sensibility
 
 """
 This Function Calculate the Focal Length(distance between lens to CMOS sensor), it is simple constant we can find by using
