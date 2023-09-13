@@ -2,20 +2,29 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 from PIL import Image
+import utils
 import sys
 
-Path = ''
+# Set working folder path
+Path = 'distance/'
+
+# Set model path
 model_path = '../yolov8s_final/weights/best.pt'
-video_name = 'IMG_4019.mp4'
+
+# Set video name
+video_name = 'IMG_4008.mp4'
 size = len(video_name)
 new_video = video_name[:size - 4] + 'b.mp4'
-# Dimensioni dell'oggetto di riferimento noto (ad es. una scheda) in millimetri
-oggetto_di_riferimento_larghezza_mm = 450
-oggetto_di_riferimento_altezza_mm = 500
 
-# Carica i file di calibrazione
-camera_matrix = np.load('../calibration/cameraMatrix.pkl', allow_pickle=True)
-dist_coeffs = np.load('../calibration/dist.pkl', allow_pickle=True)
+# Dimensioni dell'oggetto di riferimento noto (ad es. la palla) in metri  45x50
+real_width = [0.218, 0, 0.50, 0]
+real_distance = [0, 0, 0, 0, 0, 0]
+pr_dist = [0, 0]
+font = [0.55, 2]
+labels = ['basketball', 'people', 'rim']
+colors = [(56,56,255), (151,157,255), (31,112,255)]               
+measured_distance = 1
+focal_length = utils.FocalLength(measured_distance, real_width[0], 'ref.jpg')
 
 # Carica il video
 cap = cv2.VideoCapture(f'{Path}{video_name}')
@@ -26,10 +35,10 @@ model = YOLO(model_path)
 # Legge un frame
 ret, frame = cap.read()
 # Crea writer
-fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-fps = 30
-height, width, channels = frame.shape
-video_writer = cv2.VideoWriter(f'{Path}{new_video}', fourcc, fps, (width, height))
+#fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+#fps = 30
+#height, width, channels = frame.shape
+#video_writer = cv2.VideoWriter(f'{Path}{new_video}', fourcc, fps, (width, height))
 
 while cap.isOpened():
     ret, frame = cap.read()
@@ -39,55 +48,100 @@ while cap.isOpened():
     boxes = []
     # Esegue detection
     results = model(frame, conf=0.4)
+    real_width = utils.updateHeight(results, focal_length, real_width)
+    #print(f'{real_width} real_width')
+    #print(f'{real_distance} real_distance')
     for r in results:
         im_array = r.plot()  # plot a BGR numpy array of predictions
         #print(r.boxes.cls.tolist())
-        count_rim = r.boxes.cls.tolist().count(2.0)
-        count_people = r.boxes.cls.tolist().count(1.0)
-        if count_rim == 1 and count_people > 0:
+        #print(r)
+        count = [0, 0, 0]
+        count[0] = r.boxes.cls.tolist().count(0.0)
+        count[1] = r.boxes.cls.tolist().count(1.0)
+        count[2] = r.boxes.cls.tolist().count(2.0)
+        for i,c in enumerate(count):
+            if c == 0:
+                real_distance[3+i] += 1
+                
+        for row in r.boxes:
+            text = labels[int(row.data.tolist()[0][-1])] + ' ' + f'{row.data.tolist()[0][4]:.2f}'
+            cv2.rectangle(frame, (int(row.data.tolist()[0][0]), int(row.data.tolist()[0][1])), (int(row.data.tolist()[0][2]), int(row.data.tolist()[0][3])), 
+                          colors[int(row.data.tolist()[0][-1])], 2)
+            # Finds space required by the text so that we can put a background with that amount of width.
+            #(w, h), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_DUPLEX, 0.55, 1)   
+            #cv2.rectangle(frame, (int(row.data.tolist()[0][0] - 1), int(row.data.tolist()[0][1] - 17)), (int(row.data.tolist()[0][0]) + w, int(row.data.tolist()[0][1])), 
+            #                      colors[int(row.data.tolist()[0][-1])], -1)
+            cv2.putText(frame, text, (int(row.data.tolist()[0][0]), int(row.data.tolist()[0][1]) - 7), 
+                              cv2.FONT_HERSHEY_SIMPLEX, font[0], colors[int(row.data.tolist()[0][-1])], font[1])
+            
+        if count[2] == 1 and count[1] > 0:
             #print(r.boxes.data.tolist())
             # Itera su ogni riga del tensore
             for row in r.boxes:
                 #print(row.data.tolist()[0][-1])
-                if row.data.tolist()[0][-1] != 0.0:
+                if row.data.tolist()[0][-1] == 0.0:
+                    real_distance[3] = 0
                     #print(row.xywh.tolist()[0][:2])
                     # Crea una lista per la riga corrente e aggiungi i valori
-                    riga_box = row.xywh.tolist()[0][:2]
+                    riga_box = row.xywh.tolist()[0][:]
+                    #print(f'{real_width[int(row.data.tolist()[0][-1])]} real width[{int(row.data.tolist()[0][-1])}]')
+                    distance = focal_length * real_width[0] / riga_box[2]
+                    real_distance = utils.updateCamDist(real_distance, distance, 0)
+                    cv2.putText(frame, f'dist: {real_distance[0]:.1f} m', (int(riga_box[0]- (riga_box[2]/2)), int(riga_box[1] - (riga_box[3]/2) - 24)), 
+                                cv2.FONT_HERSHEY_SIMPLEX, font[0], colors[0], font[1])
+                elif row.data.tolist()[0][-1] == 1.0:
+                    real_distance[4] = 0
+                    # Crea una lista per la riga corrente e aggiungi i valori
+                    riga_box = row.xywh.tolist()[0][:]
+                    distance = focal_length * real_width[1] / riga_box[3]
+                    real_distance = utils.updateCamDist(real_distance, distance, 1)
+                    cv2.putText(frame, f'dist: {real_distance[1]:.1f} m', (int(riga_box[0]- (riga_box[2]/2)), int(riga_box[1] - (riga_box[3]/2) - 24)), 
+                                cv2.FONT_HERSHEY_SIMPLEX, font[0], colors[1], font[1])
+                    # Aggiungi la lista alla lista 'boxes'
+                    boxes.append(riga_box)
+                elif row.data.tolist()[0][-1] == 2.0:
+                    real_distance[5] = 0
+                    # Crea una lista per la riga corrente e aggiungi i valori
+                    riga_box = row.xywh.tolist()[0][:]
+                    distance = focal_length * real_width[2] / riga_box[2]
+                    real_distance = utils.updateCamDist(real_distance, distance, 2)
+                    cv2.putText(frame, f'dist: {real_distance[2]:.1f} m', (int(riga_box[0]- (riga_box[2]/2)), int(riga_box[1] - (riga_box[3]/2) - 24)), 
+                                cv2.FONT_HERSHEY_SIMPLEX, font[0], colors[2], font[1])
                     # Aggiungi la lista alla lista 'boxes'
                     boxes.append(riga_box)
             #print(boxes)       
-
-            # Calcola la distanza tra due oggetti (ad esempio, oggetto 0 e oggetto 1) 
-            #object_0 = boxes[0]
-            #object_1 = boxes[1]
-            x0, y0 = boxes[0][:]
-            x1, y1 = boxes[1][:]
-            # Applica la trasformazione delle coordinate del pixel alle coordinate del mondo reale
-            object_0_pixel = np.array([[x0, y0]], dtype='float32')
-            object_1_pixel = np.array([[x1, y1]], dtype='float32')
-            object_0_real = cv2.undistortPoints(object_0_pixel, camera_matrix, dist_coeffs)
-            object_1_real = cv2.undistortPoints(object_1_pixel, camera_matrix, dist_coeffs)
-            # Calcola la distanza euclidea tra i due oggetti
-            distance = np.linalg.norm(object_1_real - object_0_real) * 8  #!!!!!!!!
-            # Visualizza la distanza sul frame
-            cv2.putText(im_array, f'Distanza: {distance:.2f} metri', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
             
-            #cv2.imshow('Immagini', im_array)
-            #k = cv2.waitKey(0)
-            #scelta = k - 48
-            #if scelta == 0:
-            #    pass
-            #elif scelta == 1:
-            #    pass
-            #elif scelta == -21:
-            #    sys.exit()
- 
-    video_writer.write(im_array)
+            # Calcola la distanza in pixel tra i due oggetti
+            if real_distance[1] != 0:
+                pixel_dist = abs(boxes[0][0] - boxes[1][0])
+                scale_dist = pixel_dist * min(real_distance[1], real_distance[2]) / focal_length
+                p = (real_distance[1] + real_distance[2] + scale_dist) / 2
+                h = np.sqrt(p * (p - real_distance[1]) * (p - real_distance[2]) * (p - scale_dist)) * 2 / max(real_distance[1], real_distance[2])
+                #b = np.sqrt(1 - (h / min(real_distance[1], real_distance[2])) ** 2) * min(real_distance[1], real_distance[2])
+                b = np.sqrt(1 - (scale_dist / min(real_distance[1], real_distance[2])) ** 2) * min(real_distance[1], real_distance[2])
+                #distance = np.sqrt(h ** 2 + (max(real_distance[1], real_distance[2]) - b) ** 2)
+                d = np.sqrt(scale_dist ** 2 + (max(real_distance[1], real_distance[2]) - b) ** 2)
+                #print(f'{real_distance,pixel_dist,scale_dist,p,h,b,distance} real_distance, pixel_dist, scale_dist, p, h, b, distance')
+                pr_dist = utils.updateDistance(pr_dist, d)
+                pr_dist[1] = 0
+                # Visualizza la distanza sul frame
+            cv2.putText(frame, f'Distanza: {pr_dist[0]:.1f} metri', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
 
+            cv2.imshow('Immagini', frame)
+            k = cv2.waitKey(0)
+            scelta = k - 48
+            if scelta == 0:
+                pass
+            elif scelta == 1:
+                pass
+            elif scelta == -21:
+                sys.exit()
+        else:
+            pr_dist[1] += 1
+            
+    #video_writer.write(im_array)
 
-
-
-
-video_writer.release()
+#video_writer.release()
 cap.release()
 cv2.destroyAllWindows()
+

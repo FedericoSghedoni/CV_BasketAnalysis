@@ -4,6 +4,8 @@ import numpy as np
 
 Path = 'distance/'
 model_path = '../yolov8s_final/weights/best.pt'
+sens1 = 0.085 # distance from camera update sensibility
+sens2 = 0.05 # distance between r and p update sensibility
 
 """
 This Function Calculate the Focal Length(distance between lens to CMOS sensor), it is simple constant we can find by using
@@ -20,6 +22,7 @@ def FocalLength(measured_distance, real_width, ref_path):
     ref_image = cv2.imread(Path+ref_path)
     
     results = model(ref_image, conf=0.4)
+
     width_in_ref_image = 0
     for r in results:
         im_array = r.plot()  # plot a BGR numpy array of predictions
@@ -91,14 +94,23 @@ def updateHeight(results, focal_length, real_width):
         real_width[1] = (real_width[1] * (real_width[3] - 1)  + h) / real_width[3]
         return real_width
 
-def updateDistance(real_distance, d, cls):
+def updateCamDist(real_distance, d, cls):
     #print(f'{d,cls} d, cls')
-    if abs(d - real_distance[cls]) > (0.1 * (real_distance[3+cls] + 1)) and real_distance[cls] != 0:
+    if abs(d - real_distance[cls]) > (sens1 * (real_distance[3+cls] + 1)) and real_distance[cls] != 0:
         #print(f'{np.sign(real_distance[cls] - d)} np.sign(real_distance[cls] - d)')
-        real_distance[cls] += np.sign(d - real_distance[cls]) * (0.10 * (real_distance[3+cls] + 1))
+        real_distance[cls] += np.sign(d - real_distance[cls]) * (sens1 * (real_distance[3+cls] + 1))
     else:
         real_distance[cls] = d
     return real_distance
+
+def updateDistance(distance, d):
+    print(f'{distance,d} distance, d')
+    if abs(d - distance[0]) > (sens2 * (distance[1] + 1)) and distance[0] != 0:
+        #print(f'{np.sign(real_distance[cls] - d)} np.sign(real_distance[cls] - d)')
+        distance[0] += np.sign(d - distance[0]) * (sens2 * (distance[1] + 1))
+    else:
+        distance[0] = d
+    return distance
    
 
 #fl = Utils.FocalLength(100, 25, 'ref.jpg')
