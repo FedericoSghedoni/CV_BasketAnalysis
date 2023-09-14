@@ -104,7 +104,7 @@ def updateCamDist(real_distance, d, cls):
     return real_distance
 
 def updateDistance(distance, d):
-    print(f'{distance,d} distance, d')
+    #print(f'{distance,d} distance, d')
     if abs(d - distance[0]) > (sens2 * (distance[1] + 1)) and distance[0] != 0:
         #print(f'{np.sign(real_distance[cls] - d)} np.sign(real_distance[cls] - d)')
         distance[0] += np.sign(d - distance[0]) * (sens2 * (distance[1] + 1))
