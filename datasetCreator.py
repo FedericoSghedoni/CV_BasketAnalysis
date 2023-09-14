@@ -55,15 +55,14 @@ class BasketDataset(Dataset):
         return sample
 
 def loadDataset(verbose=False):
-    transform = [t.ToPILImage(), t.Resize((720, 720)), t.ToTensor()]
+    transform = [t.ToPILImage(), t.Resize((144, 144)), t.ToTensor()]
     dataset = BasketDataset(root_dir='dataset', transform=t.Compose(transform))
-
-    # Output frames of one video from the dataset (change the index as needed)
-    sample = dataset[0]
-    frames = sample['frames']
 
     # Iterate through frames and display them
     if verbose: 
+        # Output frames of one video from the dataset (change the index as needed)
+        sample = dataset[0]
+        frames = sample['frames']
         for frame in frames:
             frame = torch.reshape(frame,(720,720,3))
             cv2.imshow('Video Frame', frame.numpy())
