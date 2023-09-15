@@ -87,7 +87,7 @@ def getHeight(results, focal_length, real_width):
 def updateHeight(results, focal_length, real_width):
     h = getHeight(results, focal_length, real_width)
     #print(f'{h} altezza')
-    if h < 1.5 or h >= 2.4:
+    if h < 1.5 or h >= 2.3:
         return real_width
     else:
         real_width[3] += 1

@@ -2,8 +2,10 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 from PIL import Image
-import utils
+#import utils
 import sys
+sys.path.append('CV_BasketAnalysis')
+import utils
 
 # !! distanza tra rim e player deve essere minore almeno di una tra distanza rim/camera e distanza player/camera, 
 # sempre vero a meno che non si usino grandangoli
