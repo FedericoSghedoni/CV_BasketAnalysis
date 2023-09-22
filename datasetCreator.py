@@ -64,7 +64,7 @@ def loadDataset(verbose=False):
         sample = dataset[0]
         frames = sample['frames']
         for frame in frames:
-            frame = torch.reshape(frame,(720,720,3))
+            frame = torch.reshape(frame,(144,144,3))
             cv2.imshow('Video Frame', frame.numpy())
             cv2.waitKey(50)  # Adjust the delay as needed (ms)
         cv2.destroyAllWindows()

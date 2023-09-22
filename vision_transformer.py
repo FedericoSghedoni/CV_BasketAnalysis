@@ -5,11 +5,9 @@ import numpy as np
 from datasetCreator import loadDataset
 from torch.utils.data import DataLoader
 from torch.utils.data import random_split
-from random import random
 from torch import nn
 from einops.layers.torch import Rearrange
 from torch import Tensor
-from einops import rearrange
 from einops import repeat
 
 # Select the videos from the dataset
@@ -46,8 +44,8 @@ class Attention(nn.Module):
         super().__init__()
         self.n_heads = n_heads
         self.att = torch.nn.MultiheadAttention(embed_dim=dim,
-                                               num_heads=n_heads,
-                                               dropout=dropout)
+                                            num_heads=n_heads,
+                                            dropout=dropout)
         self.q = torch.nn.Linear(dim, dim)
         self.k = torch.nn.Linear(dim, dim)
         self.v = torch.nn.Linear(dim, dim)
@@ -113,8 +111,8 @@ class ViT(nn.Module):
 
         # Patching
         self.patch_embedding = PatchEmbedding(in_channels=ch,
-                                              patch_size=patch_size,
-                                              emb_size=emb_dim)
+                                            patch_size=patch_size,
+                                            emb_size=emb_dim)
         # Learnable params
         num_patches = (img_size // patch_size) ** 2
         self.pos_embedding = nn.Parameter(
@@ -171,28 +169,42 @@ for epoch in range(1000):
     epoch_losses = []
     model.train()
     for step, datapoint in enumerate(train_dataloader):
+        # Select one video at time
         for idx, (_, _) in enumerate(datapoint):
             inputs = datapoint[idx]['frames']
-            labels = datapoint[idx]['label']
-            print(labels)
-            for i in range (len(inputs)):
-                input= inputs[i].to(device)
+            labels = torch.empty((1), dtype=int)
+            labels[0] = datapoint[idx]['label']
+            # Select the single frame and pass it to the model
+            # We want to select the previous frame and the follower 
+            # one to pass also those in the attention layer so we 
+            # avoid the evaluation of the first and last frames 
+            for i in range (len(inputs) - 2):
+                previous = torch.unsqueeze(inputs[i].to(device), dim=0)
+                input = torch.unsqueeze(inputs[i+1].to(device), dim=0)
+                next = torch.unsqueeze(inputs[i+2].to(device), dim=0)
                 optimizer.zero_grad()
                 outputs = model(input)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+            epoch_losses.append(loss.item())
+    if epoch % 5 == 0:
+        print(f">>> Epoch {epoch} train loss: ", np.mean(epoch_losses))
+        epoch_losses = []
+        # Something was strange when using this?
+        # model.eval()
+        for step, (inputs, labels) in enumerate(test_dataloader):
+            for idx, (_, _) in enumerate(datapoint):
+                inputs = datapoint[idx]['frames']
+                labels = torch.empty((1), dtype=int)
+                labels[0] = datapoint[idx]['label']
+                for i in range (len(inputs) - 2):
+                    previous = torch.unsqueeze(inputs[i].to(device), dim=0)
+                    input = torch.unsqueeze(inputs[i+1].to(device), dim=0)
+                    next = torch.unsqueeze(inputs[i+2].to(device), dim=0)
+                    outputs = model(input)
                 loss = criterion(outputs, labels)
-                loss.backward()
-                optimizer.step()
                 epoch_losses.append(loss.item())
-            if epoch % 5 == 0:
-                print(f">>> Epoch {epoch} train loss: ", np.mean(epoch_losses))
-                epoch_losses = []
-                # Something was strange when using this?
-                # model.eval()
-                for step, (inputs, labels) in enumerate(test_dataloader):
-                    inputs, labels = inputs.to(device), labels.to(device)
-                    outputs = model(inputs)
-                    loss = criterion(outputs, labels)
-                    epoch_losses.append(loss.item())
                 print(f">>> Epoch {epoch} test loss: ", np.mean(epoch_losses))
 
 inputs, labels = next(iter(test_dataloader))
