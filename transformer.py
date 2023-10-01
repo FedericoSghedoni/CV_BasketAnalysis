@@ -12,16 +12,17 @@ class MultiHeadAttention(nn.Module):
         self.d_model = d_model
         self.num_heads = num_heads
         self.d_k = d_model // num_heads
+        num_feature = 9
         
-        self.W_q = nn.Linear(d_model, d_model)
-        self.W_k = nn.Linear(d_model, d_model)
-        self.W_v = nn.Linear(d_model, d_model)
+        self.W_q = nn.Linear(num_feature, d_model)
+        self.W_k = nn.Linear(num_feature, d_model)
+        self.W_v = nn.Linear(num_feature, d_model)
         self.W_o = nn.Linear(d_model, d_model)
         
-    def scaled_dot_product_attention(self, Q, K, V, mask=None):
+    def scaled_dot_product_attention(self, Q, K, V): #, mask=None):
         attn_scores = torch.matmul(Q, K.transpose(-2, -1)) / math.sqrt(self.d_k)
-        if mask is not None:
-            attn_scores = attn_scores.masked_fill(mask == 0, -1e9)
+        # if mask is not None:
+            # attn_scores = attn_scores.masked_fill(mask == 0, -1e9)
         attn_probs = torch.softmax(attn_scores, dim=-1)
         output = torch.matmul(attn_probs, V)
         return output
@@ -34,12 +35,13 @@ class MultiHeadAttention(nn.Module):
         batch_size, _, seq_length, d_k = x.size()
         return x.transpose(1, 2).contiguous().view(batch_size, seq_length, self.d_model)
         
-    def forward(self, Q, K, V, mask=None):
+    def forward(self, Q, K, V): #, mask=None):
+        print(Q.shape)
         Q = self.split_heads(self.W_q(Q))
         K = self.split_heads(self.W_k(K))
         V = self.split_heads(self.W_v(V))
         
-        attn_output = self.scaled_dot_product_attention(Q, K, V, mask)
+        attn_output = self.scaled_dot_product_attention(Q, K, V) # , mask)
         output = self.W_o(self.combine_heads(attn_output))
         return output
     
@@ -65,13 +67,13 @@ class PositionalEncoding(nn.Module):
         pe[:, 1::2] = torch.cos(position * div_term)
         
         self.register_buffer('pe', pe.unsqueeze(0))
-        
+
     def forward(self, x):
-        seq_length = x.numel()
-        print(seq_length)
-        pe_slice = self.pe[:, :seq_length]
-        broadcasted_x = x.unsqueeze(0).unsqueeze(1)
-        return broadcasted_x + pe_slice
+        seq_length = x.size(1)
+        pe = self.pe[:, :seq_length]  # Trim positional encodings based on input sequence length
+        x_broadcasteed = x.unsqueeze(0)
+        print(pe.shape, x_broadcasteed.shape)
+        return x_broadcasteed + pe.reshape((1,112,9))
     
 class EncoderLayer(nn.Module):
     def __init__(self, d_model, num_heads, d_ff, dropout):
@@ -82,16 +84,17 @@ class EncoderLayer(nn.Module):
         self.norm2 = nn.LayerNorm(d_model)
         self.dropout = nn.Dropout(dropout)
         
-    def forward(self, x, mask):
-        attn_output = self.self_attn(x, x, x, mask)
+    def forward(self, x): #, mask):
+        attn_output = self.self_attn(x, x, x) # , mask)
         x = self.norm1(x + self.dropout(attn_output))
         ff_output = self.feed_forward(x)
         x = self.norm2(x + self.dropout(ff_output))
         return x
     
 class Transformer(nn.Module):
-    def __init__(self, tgt_size, d_model, num_heads, num_layers, d_ff, max_seq_length, dropout):
+    def __init__(self, src_size, tgt_size, d_model, num_heads, num_layers, d_ff, max_seq_length, dropout):
         super(Transformer, self).__init__()
+        # self.encoder_embedding = nn.Embedding(src_size, d_model)
         self.positional_encoding = PositionalEncoding(d_model, max_seq_length)
 
         self.encoder_layers = nn.ModuleList([EncoderLayer(d_model, num_heads, d_ff, dropout) for _ in range(num_layers)])
@@ -99,18 +102,12 @@ class Transformer(nn.Module):
         self.fc = nn.Linear(d_model, tgt_size)
         self.dropout = nn.Dropout(dropout)
 
-    def generate_mask(self, src, tgt):
+    def generate_mask(self, src):
         src_mask = (src != 0).unsqueeze(1).unsqueeze(2)
-        tgt_mask = (tgt != 0).unsqueeze(1).unsqueeze(3)
-        seq_length = tgt.size(1)
-        nopeak_mask = (1 - torch.triu(torch.ones(1, seq_length, seq_length), diagonal=1)).bool()
-        tgt_mask = tgt_mask & nopeak_mask
-        return src_mask, tgt_mask
+        return src_mask
 
-    def forward(self, src, tgt):
-        # src_mask, tgt_mask = self.generate_mask(src, tgt)
-        prova = self.positional_encoding(src)
-        print(f'La prova è: {prova}')
+    def forward(self, src):
+        # src_mask = self.generate_mask(src)
         src_embedded = self.dropout(self.positional_encoding(src))
 
         enc_output = src_embedded

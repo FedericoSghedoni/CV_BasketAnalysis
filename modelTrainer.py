@@ -19,15 +19,16 @@ def YoloTrainer():
     model.export(format="onnx")
 
 def TrasformerTrainer():
+    src_size = 1008
     tgt_size = 1
-    d_model = 1024
+    d_model = 112
     num_heads = 8
     num_layers = 6
     d_ff = 2048
-    max_seq_length = 1000
+    max_seq_length = 1008
     dropout = 0.1
 
-    transformer = Transformer(tgt_size, d_model, num_heads, num_layers, d_ff, max_seq_length, dropout)
+    transformer = Transformer(src_size, tgt_size, d_model, num_heads, num_layers, d_ff, max_seq_length, dropout)
 
     criterion = nn.CrossEntropyLoss(ignore_index=0)
     optimizer = optim.Adam(transformer.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
@@ -47,11 +48,16 @@ def TrasformerTrainer():
         # Select one video at time
             for idx, (_, _) in enumerate(datapoint):
                 inputs = datapoint[idx]['emb_fea']
+                # Add padding to have always the same input dimension
+                padd = 112 - inputs.shape[0] # 112 stand for the src_dimension/9 the feature number
+                print(inputs.shape, padd)
+                inputs = torch.nn.functional.pad(inputs, (0,0,0,padd), mode='constant', value=0)
+                print(inputs.shape)
                 labels = torch.empty((1), dtype=int)
                 labels[0] = datapoint[idx]['label']
                 inputs, labels = inputs.to(device), labels.to(device)
                 optimizer.zero_grad()
-                outputs = transformer(inputs, labels)
+                outputs = transformer(inputs)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
@@ -68,7 +74,7 @@ def TrasformerTrainer():
                     labels = torch.empty((1), dtype=int)
                     labels[0] = datapoint[idx]['label']   
                     inputs, labels = inputs.to(device), labels.to(device)
-                    outputs = transformer(inputs, labels)
+                    outputs = transformer(inputs)
                 loss = criterion(outputs, labels)
                 epoch_losses.append(loss.item())
             print(f">>> Epoch {epoch} test loss: ", np.mean(epoch_losses))

@@ -93,10 +93,10 @@ class Tokenizer():
 
                 angle = calculate_angle(shoulder, elbow, wrist)
                 shooting_angle = torch.tensor([angle])
-                self.embedded_feature = self.embedded_feature.reshape(-1)
+                # self.embedded_feature = self.embedded_feature.reshape(-1)
                 
                 new_feature = torch.cat((new_feature, shooting_angle), dim=0)
-        self.embedded_feature = torch.cat((self.embedded_feature, new_feature))
+        self.embedded_feature = torch.cat((self.embedded_feature, new_feature.unsqueeze(0)), dim=0)
         return detections[0].plot(), detections[0].boxes
     
     # !! distanza tra rim e player deve essere minore almeno di una tra distanza rim/camera e distanza player/camera, 
