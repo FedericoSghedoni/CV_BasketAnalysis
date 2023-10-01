@@ -7,7 +7,7 @@ from tokenizer import Tokenizer
 
 model_path = 'yolov8s_final/weights/best.pt'
 
-cap = cv2.VideoCapture('../CVDataset/dataset/ours/video2/IMG_4009(1).mp4')
+cap = cv2.VideoCapture('dataset/canestro/video1.mp4')
 ret, frame = cap.read()
 
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
@@ -23,7 +23,7 @@ kalman_filter = Kalman(height=frame_height, width=frame_width)
 while cap.isOpened():
     i += 1
     ret, frame = cap.read()
-    if not ret or i == 10:
+    if not ret: # or i == 10:
         break
 
     # Rileva e traccia gli oggetti nel frame

@@ -5,7 +5,6 @@ from ultralytics import YOLO
 from pydantic import BaseModel
 import utils
 import numpy as np
-import sys
 
 def calculate_angle(point1, point2, point3):
     # Calcola il vettore tra point2 e point1
@@ -44,7 +43,6 @@ class GetKeypoint(BaseModel):
 class Tokenizer():
 
     def __init__(self, path_to_model) -> None:
-        self.frame_numb = 0
         self.rim_coord = torch.zeros(4) # 4 features x,y,w,h
         self.ball_coord = torch.zeros(4) # 4 features x,y,w,h
         # self.player_coord = torch.zeros(4) # 4 features x,y,w,h
@@ -60,8 +58,7 @@ class Tokenizer():
         self.focal_length = utils.FocalLength(self.measured_distance, self.real_width[0], 'ref.jpg')
         
     def detect_objects(self, frame):
-        detections = self.detector(frame)
-        self.frame_numb +=1 
+        detections = self.detector(frame) 
         # To show the detection use the line below
         # detections.show()
         dist, im_array = self.getDistance(detections)
@@ -75,7 +72,7 @@ class Tokenizer():
                 # self.player_coord = detection.xywhn
             elif class_index == 2: # Rim
                 self.rim_coord = detection.xywhn
-        new_feature = torch.cat([torch.Tensor([self.frame_numb]), self.rim_coord[0], self.ball_coord[0]])
+        new_feature = torch.cat((self.rim_coord[0], self.ball_coord[0]))
 
         results = self.pose.predict(frame, save=False, imgsz=640 , conf = 0.5)
 

@@ -1,26 +1,18 @@
 import os
 import cv2
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from torchvision import transforms as t
-
-# Image Patching in tensor
-class Compose(object):
-    def __init__(self, transforms):
-        self.transforms = transforms
-
-    def __call__(self, image, target):
-        for t in self.transforms:
-            image = t(image)
-        return image, target
+from tokenizer import Tokenizer
 
 class BasketDataset(Dataset):
-    def __init__(self, root_dir, transform=None):
+    def __init__(self, root_dir, model_path, transform=None):
         self.root_dir = root_dir
         self.classes = os.listdir(root_dir)
         self.class_to_idx = {cls: idx for idx, cls in enumerate(self.classes)}
         self.video_paths = self._load_video_paths()
         self.transform = transform
+        self.tokenizer = Tokenizer(model_path)
 
     def _load_video_paths(self):
         video_paths = []
@@ -39,33 +31,25 @@ class BasketDataset(Dataset):
 
         # Capture video frames
         cap = cv2.VideoCapture(video_path)
-        frames = []
         while True:
             ret, frame = cap.read()
             if not ret:
                 break
-            frames.append(frame)
+            self.tokenizer.detect_objects(frame)
         cap.release()
-
-        if self.transform:
-            frames = [self.transform(frame) for frame in frames]
         
-        sample = {'frames': frames, 'label': label}
+        sample = {'emb_fea': self.tokenizer.embedded_feature, 'label': label}
 
         return sample
 
 def loadDataset(verbose=False):
-    transform = [t.ToPILImage(), t.Resize((144, 144)), t.ToTensor()]
-    dataset = BasketDataset(root_dir='dataset', transform=t.Compose(transform))
+    dataset = BasketDataset(root_dir='dataset', model_path='yolov8s_final/weights/best.pt')
 
     # Iterate through frames and display them
     if verbose: 
         # Output frames of one video from the dataset (change the index as needed)
         sample = dataset[0]
-        frames = sample['frames']
-        for frame in frames:
-            frame = torch.reshape(frame,(144,144,3))
-            cv2.imshow('Video Frame', frame.numpy())
-            cv2.waitKey(50)  # Adjust the delay as needed (ms)
-        cv2.destroyAllWindows()
+        feature = sample['emb_fea']
+        label = sample['label']
+        print(feature, label)
     return dataset
