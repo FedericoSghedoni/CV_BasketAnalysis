@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
-import torch.utils.data as data
 import math
-import copy
 
 class MultiHeadAttention(nn.Module):
     def __init__(self, d_model, num_heads):
@@ -12,11 +10,10 @@ class MultiHeadAttention(nn.Module):
         self.d_model = d_model
         self.num_heads = num_heads
         self.d_k = d_model // num_heads
-        num_feature = 9
         
-        self.W_q = nn.Linear(num_feature, d_model)
-        self.W_k = nn.Linear(num_feature, d_model)
-        self.W_v = nn.Linear(num_feature, d_model)
+        self.W_q = nn.Linear(d_model, d_model)
+        self.W_k = nn.Linear(d_model, d_model)
+        self.W_v = nn.Linear(d_model, d_model)
         self.W_o = nn.Linear(d_model, d_model)
         
     def scaled_dot_product_attention(self, Q, K, V): #, mask=None):
@@ -36,7 +33,6 @@ class MultiHeadAttention(nn.Module):
         return x.transpose(1, 2).contiguous().view(batch_size, seq_length, self.d_model)
         
     def forward(self, Q, K, V): #, mask=None):
-        print(Q.shape)
         Q = self.split_heads(self.W_q(Q))
         K = self.split_heads(self.W_k(K))
         V = self.split_heads(self.W_v(V))
@@ -71,9 +67,7 @@ class PositionalEncoding(nn.Module):
     def forward(self, x):
         seq_length = x.size(1)
         pe = self.pe[:, :seq_length]  # Trim positional encodings based on input sequence length
-        x_broadcasteed = x.unsqueeze(0)
-        print(pe.shape, x_broadcasteed.shape)
-        return x_broadcasteed + pe.reshape((1,112,9))
+        return x + pe
     
 class EncoderLayer(nn.Module):
     def __init__(self, d_model, num_heads, d_ff, dropout):
@@ -92,7 +86,7 @@ class EncoderLayer(nn.Module):
         return x
     
 class Transformer(nn.Module):
-    def __init__(self, src_size, tgt_size, d_model, num_heads, num_layers, d_ff, max_seq_length, dropout):
+    def __init__(self, tgt_size, d_model, num_heads, num_layers, d_ff, max_seq_length, dropout):
         super(Transformer, self).__init__()
         # self.encoder_embedding = nn.Embedding(src_size, d_model)
         self.positional_encoding = PositionalEncoding(d_model, max_seq_length)
