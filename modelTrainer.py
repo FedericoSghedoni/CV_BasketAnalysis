@@ -37,6 +37,7 @@ def TrasformerTrainer():
     train_split = int(0.8 * len(dataset))
     train, test = random_split(dataset, [train_split, len(dataset) - train_split])
 
+    print('Extracting features from Dataset...')
     train_dataloader = DataLoader(train, batch_size=32, collate_fn=lambda x: x)
     test_dataloader = DataLoader(test, batch_size=32)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -51,14 +52,14 @@ def TrasformerTrainer():
                 # Add padding to have always the same input dimension
                 padd = 112 - inputs.shape[0] # 112 stand for the src_dimension/9 the feature number
                 inputs = torch.nn.functional.pad(inputs, (0,0,0,padd), mode='constant', value=0)
-                labels = torch.empty((1), dtype=int)
-                labels[0] = datapoint[idx]['label']
+                # labels = torch.empty((1), dtype=int)
+                labels = datapoint[idx]['label']
                 inputs = inputs.reshape((9,112))
                 inputs, labels = inputs.to(device), labels.to(device)
                 optimizer.zero_grad()
                 outputs = transformer(inputs)
             print(outputs.shape, labels.shape)
-            loss = criterion(outputs, labels.unsqueeze(0))
+            loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
             epoch_losses.append(loss.item())
@@ -71,8 +72,11 @@ def TrasformerTrainer():
                 # Select one video at time
                 for idx, (_, _) in enumerate(datapoint):
                     inputs = datapoint[idx]['emb_fea']
-                    labels = torch.empty((1), dtype=int)
-                    labels[0] = datapoint[idx]['label']   
+                    # Add padding to have always the same input dimension
+                    padd = 112 - inputs.shape[0] # 112 stand for the src_dimension/9 the feature number
+                    inputs = torch.nn.functional.pad(inputs, (0,0,0,padd), mode='constant', value=0)
+                    # labels = torch.empty((1), dtype=int)
+                    labels = datapoint[idx]['label']   
                     inputs, labels = inputs.to(device), labels.to(device)
                     outputs = transformer(inputs)
                 loss = criterion(outputs, labels)

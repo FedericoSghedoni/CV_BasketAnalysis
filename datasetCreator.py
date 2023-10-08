@@ -2,7 +2,6 @@ import os
 import cv2
 import torch
 from torch.utils.data import Dataset
-from torchvision import transforms as t
 from tokenizer import Tokenizer
 
 class BasketDataset(Dataset):
@@ -27,7 +26,8 @@ class BasketDataset(Dataset):
         return len(self.video_paths)
 
     def __getitem__(self, idx):
-        video_path, label = self.video_paths[idx]
+        label = torch.empty((1), dtype=int)
+        video_path, label[0] = self.video_paths[idx]
 
         # Capture video frames
         cap = cv2.VideoCapture(video_path)
@@ -39,7 +39,7 @@ class BasketDataset(Dataset):
         cap.release()
         
         sample = {'emb_fea': self.tokenizer.embedded_feature, 'label': label}
-
+        print('Extracting features...')
         return sample
 
 def loadDataset(verbose=False):

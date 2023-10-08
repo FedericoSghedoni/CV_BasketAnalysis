@@ -93,8 +93,11 @@ class Transformer(nn.Module):
 
         self.encoder_layers = nn.ModuleList([EncoderLayer(d_model, num_heads, d_ff, dropout) for _ in range(num_layers)])
 
-        self.fc = nn.Linear(d_model, tgt_size)
+        # self.fc = nn.Linear(d_model, tgt_size)
         self.dropout = nn.Dropout(dropout)
+
+        # Classification head
+        self.head = nn.Sequential(nn.LayerNorm(d_model), nn.Linear(d_model, tgt_size))
 
     def generate_mask(self, src):
         src_mask = (src != 0).unsqueeze(1).unsqueeze(2)
@@ -109,6 +112,6 @@ class Transformer(nn.Module):
             enc_output = enc_layer(enc_output) # , src_mask)
 
         # Check the output
-        output = self.fc(enc_output)
+        output = self.head(enc_output[:, 0, :])
         print(f'La prediction del modello è: {output}')
         return output

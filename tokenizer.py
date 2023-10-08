@@ -58,12 +58,12 @@ class Tokenizer():
         self.focal_length = utils.FocalLength(self.measured_distance, self.real_width[0], 'ref.jpg')
         
     def detect_objects(self, frame):
-        detections = self.detector(frame) 
+        detections = self.detector(frame, verbose=False) 
         # To show the detection use the line below
         # detections.show()
         dist, im_array = self.getDistance(detections)
-        print(f'{dist} dist')
-        #frame = cv2.cvtColor(im_array, cv2.COLOR_GRAY2BGR)
+        # print(f'{dist} dist')
+        # frame = cv2.cvtColor(im_array, cv2.COLOR_GRAY2BGR)
         for detection in detections[0].boxes:
             class_index = int(detection.cls.item())
             if class_index == 0: # Basketball
@@ -74,7 +74,7 @@ class Tokenizer():
                 self.rim_coord = detection.xywhn
         new_feature = torch.cat((self.rim_coord[0], self.ball_coord[0]))
 
-        results = self.pose.predict(frame, save=False, imgsz=640 , conf = 0.5)
+        results = self.pose.predict(frame, save=False, imgsz=640 , conf = 0.5, verbose=False)
 
         for r in results:
 
@@ -106,7 +106,7 @@ class Tokenizer():
         boxes = []
         
         self.real_width = utils.updateHeight(results, self.focal_length, self.real_width)
-        print(f'{self.real_width[1]} height')
+        # print(f'{self.real_width[1]} height')
         for r in results:
             im_array = r.plot()  # plot a BGR numpy array of predictions
             count = [0, 0, 0]

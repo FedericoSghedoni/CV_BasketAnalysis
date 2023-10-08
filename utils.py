@@ -21,7 +21,7 @@ def FocalLength(measured_distance, real_width, ref_path):
     # reading reference image from directory
     ref_image = cv2.imread(Path+ref_path)
     
-    results = model(ref_image, conf=0.4)
+    results = model(ref_image, conf=0.4, verbose=False)
 
     width_in_ref_image = 0
     for r in results:
@@ -37,9 +37,9 @@ def FocalLength(measured_distance, real_width, ref_path):
                     #print(row.xywh.tolist()[0])
                     # Crea una lista per la riga corrente e aggiungi i valori
                     width_in_ref_image = row.xywh.tolist()[0][2]
-    print(width_in_ref_image)
+    # print(width_in_ref_image)
     focal_length = (width_in_ref_image * measured_distance) / real_width
-    print(focal_length)
+    # print(focal_length)
     return focal_length
 
 def check_intersection(a, b):
