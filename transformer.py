@@ -112,6 +112,6 @@ class Transformer(nn.Module):
             enc_output = enc_layer(enc_output) # , src_mask)
 
         # Check the output
-        output = self.head(enc_output[:, 0, :])
+        output = self.head(enc_output[:, :, :])
         print(f'La prediction del modello è: {output}')
         return output
