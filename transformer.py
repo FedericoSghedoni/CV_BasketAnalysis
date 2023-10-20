@@ -52,11 +52,11 @@ class PositionWiseFeedForward(nn.Module):
         return self.fc2(self.relu(self.fc1(x)))
     
 class PositionalEncoding(nn.Module):
-    def __init__(self, d_model, max_seq_length):
+    def __init__(self, n_feature, d_model):
         super(PositionalEncoding, self).__init__()
         
-        pe = torch.zeros(max_seq_length, d_model)
-        position = torch.arange(0, max_seq_length, dtype=torch.float).unsqueeze(1)
+        pe = torch.zeros(n_feature, d_model)
+        position = torch.arange(0, n_feature, dtype=torch.float).unsqueeze(1)
         div_term = torch.exp(torch.arange(0, d_model, 2).float() * -(math.log(10000.0) / d_model))
         
         pe[:, 0::2] = torch.sin(position * div_term)
@@ -86,15 +86,34 @@ class EncoderLayer(nn.Module):
         return x
     
 class Transformer(nn.Module):
-    def __init__(self, tgt_size, d_model, num_heads, num_layers, d_ff, max_seq_length, dropout):
+    def __init__(self, tgt_size, n_feature, d_model, num_heads, num_layers, d_ff, dropout):
         super(Transformer, self).__init__()
-        # self.encoder_embedding = nn.Embedding(src_size, d_model)
-        self.positional_encoding = PositionalEncoding(d_model, max_seq_length)
+
+        self.to_embed = nn.Linear(n_feature, d_model)
+        
+        self.positional_encoding = PositionalEncoding(n_feature, d_model)
+
+        # learnable positional embedding
+        # $> initialized as N(0, 0.02)
+        # SOLITAMENTE IL POSITIONAL EMBEDDING È FISSATO DA VALORI SINUSOIDALI,
+        # IN QUESTA IMPLEMENTAZIONE INVECE VIENE IMPARATO.
+        self.pos_emb = nn.Parameter(torch.normal(
+            mean=0, std=0.02,
+            size=(1, n_feature + 1, d_model)
+        ))
+        torch.nn.init.xavier_normal_(self.pos_emb)
 
         self.encoder_layers = nn.ModuleList([EncoderLayer(d_model, num_heads, d_ff, dropout) for _ in range(num_layers)])
 
         # self.fc = nn.Linear(d_model, tgt_size)
         self.dropout = nn.Dropout(dropout)
+
+        # learnable class token
+        # $> initialized as N(0, 0.02)
+        self.class_token = nn.Parameter(torch.normal(
+            mean=0, std=0.02,
+            size=(1, d_model)
+        ))
 
         # Classification head
         self.head = nn.Sequential(nn.LayerNorm(d_model), nn.Linear(d_model, tgt_size))
@@ -105,13 +124,23 @@ class Transformer(nn.Module):
 
     def forward(self, src):
         # src_mask = self.generate_mask(src)
-        src_embedded = self.dropout(self.positional_encoding(src))
+        # print(f'First print: {self.positional_encoding(src).shape}')
+        # src_embedded = self.dropout(self.positional_encoding(src))
 
-        enc_output = src_embedded
+        tokens = self.to_embed(src)
+        __class_token = self.class_token.repeat((src.shape[0], 1))
+        print(f'Second print: {__class_token.shape}')
+        print(f'Third print: {tokens.shape}')
+        tokens = torch.cat([__class_token, tokens], 1)
+        print(f'Third print new shapes: {tokens.shape}')
+        print(f'Shape positional embedding: {self.pos_emb.shape}')
+        tokens = tokens + self.pos_emb
+
+        enc_output = tokens
         for enc_layer in self.encoder_layers:
             enc_output = enc_layer(enc_output) # , src_mask)
 
         # Check the output
-        output = self.head(enc_output[:, :, :])
+        output = self.head(enc_output[:, 0, :])
         print(f'La prediction del modello è: {output}')
         return output
