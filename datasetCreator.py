@@ -26,7 +26,7 @@ class BasketDataset(Dataset):
         return len(self.video_paths)
 
     def __getitem__(self, idx):
-        label = torch.empty((1), dtype=torch.long)
+        label = torch.empty((1), dtype=torch.float)
         video_path, label[0] = self.video_paths[idx]
 
         # Capture video frames
