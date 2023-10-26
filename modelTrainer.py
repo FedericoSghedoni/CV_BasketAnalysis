@@ -19,18 +19,14 @@ def YoloTrainer():
     model.export(format="onnx")
 
 def TrasformerTrainer():
-    # src_size = 1008
     tgt_size = 1
-    d_model = 112 # 1008/9 
-    num_heads = 8
-    num_layers = 6
-    d_ff = 2048
-    max_seq_length = 9
+    d_model = 112
+    n_feature = 9
     dropout = 0.1
 
-    transformer = Transformer(tgt_size, d_model, num_heads, num_layers, d_ff, max_seq_length, dropout)
+    transformer = Transformer(tgt_size, n_feature,  d_model, dropout)
 
-    criterion = nn.CrossEntropyLoss(ignore_index=0)
+    criterion = nn.BCELoss()
     optimizer = optim.Adam(transformer.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
 
     dataset = loadDataset(verbose=False)
@@ -45,21 +41,24 @@ def TrasformerTrainer():
     for epoch in range(100):
         epoch_losses = []
         transformer.train()
-        for idx, datapoint in enumerate(train_dataloader):
         # Select one video at time
-            # for idx, (_, _) in enumerate(datapoint):
-            inputs = datapoint[idx]['emb_fea']
+        for idx, datapoint in enumerate(train_dataloader):
+
+            # Add a dimension for the batch dimension, in this implemantion is 1
+            inputs = datapoint[idx]['emb_fea'].unsqueeze(0)
+
             # Add padding to have always the same input dimension
-            padd = 112 - inputs.shape[0] # 112 stand for the src_dimension/9 the feature number
+            # 112 stand for the src_dimension/9 the feature number
+            padd = 112 - inputs.shape[1]
             inputs = torch.nn.functional.pad(inputs, (0,0,0,padd), mode='constant', value=0)
-            # labels = torch.empty((1), dtype=int)
             labels = datapoint[idx]['label']
-            inputs = inputs.reshape((9,112))
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
             outputs = transformer(inputs)
+
         print(outputs.shape, labels.shape)
-        loss = criterion(outputs, labels)
+        print(torch.sigmoid(outputs), labels)
+        loss = criterion(torch.sigmoid(outputs), labels)
         loss.backward()
         optimizer.step()
         epoch_losses.append(loss.item())
@@ -68,18 +67,19 @@ def TrasformerTrainer():
             epoch_losses = []
             # Something was strange when using this?
             # transformer.eval()
-            for step, datapoint in enumerate(test_dataloader):
-                # Select one video at time
-                for idx, _ in enumerate(datapoint):
-                    inputs = datapoint[idx]['emb_fea']
-                    # Add padding to have always the same input dimension
-                    padd = 112 - inputs.shape[0] # 112 stand for the src_dimension/9 the feature number
-                    inputs = torch.nn.functional.pad(inputs, (0,0,0,padd), mode='constant', value=0)
-                    # labels = torch.empty((1), dtype=int)
-                    labels = datapoint[idx]['label']   
-                    inputs, labels = inputs.to(device), labels.to(device)
-                    outputs = transformer(inputs)
-                loss = criterion(outputs, labels)
+            for idx, test_datapoint in enumerate(test_dataloader):
+
+                # Select one video at time, repeat the same steps as before 
+                inputs = test_datapoint[idx]['emb_fea'].unsqueeze(0)
+
+                # Add padding to have always the same input dimension
+                # 112 stand for the src_dimension/9 the feature number
+                padd = 112 - inputs.shape[0]
+                inputs = torch.nn.functional.pad(inputs, (0,0,0,padd), mode='constant', value=0).unsqueeze(0)
+                labels = test_datapoint[idx]['label']   
+                inputs, labels = inputs.to(device), labels.to(device)
+                outputs = transformer(inputs)
+                loss = criterion(torch.sigmoid(outputs), labels)
                 epoch_losses.append(loss.item())
             print(f">>> Epoch {epoch} test loss: ", np.mean(epoch_losses))
 
