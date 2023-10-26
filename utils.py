@@ -1,3 +1,4 @@
+import math
 import cv2
 from ultralytics import YOLO
 import numpy as np
@@ -105,3 +106,18 @@ def updateData(pp_data, roi, h):
 
 #fl = Utils.FocalLength(100, 25, 'ref.jpg')
 #print(fl)
+
+def calculate_angle(point1, point2, point3):
+    # Calcola il vettore tra point2 e point1
+    vector1 = (point1[0] - point2[0], point1[1] - point2[1])
+    vector2 = (point3[0] - point2[0], point3[1] - point2[1])
+
+    dot_product = vector1[0] * vector2[0] + vector1[1] * vector2[1]
+
+    norm1 = math.sqrt(vector1[0]**2 + vector1[1]**2)
+    norm2 = math.sqrt(vector2[0]**2 + vector2[1]**2)
+
+    angle_radians = math.acos(dot_product / (norm1 * norm2))
+    angle_degrees = math.degrees(angle_radians)
+
+    return angle_degrees / 180 # Normaalized Value

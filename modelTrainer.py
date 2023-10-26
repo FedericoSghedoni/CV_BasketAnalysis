@@ -11,7 +11,7 @@ import torch
 
 def YoloTrainer():
     # Load a model
-    model = YOLO('yolov8s.pt')  # load a pretrained model (recommended for training)
+    model = YOLO('yolov8s.pt')  # load a pretrained model
 
     # Train the model
     model.train(data='dataset/data.yaml', epochs=100, imgsz=640, batch=16, name='yolov8s_custom')
@@ -19,21 +19,18 @@ def YoloTrainer():
     model.export(format="onnx")
 
 def TrasformerTrainer():
-    tgt_size = 1
-    d_model = 112
-    n_feature = 9
-    dropout = 0.1
 
-    transformer = Transformer(tgt_size, n_feature,  d_model, dropout)
+    transformer = Transformer(tgt_size=1, n_feature=9,  d_model=112)
 
+    # We use the Binary Cross Entropy since we have a 2 class problem
     criterion = nn.BCELoss()
     optimizer = optim.Adam(transformer.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
 
+    print('Extracting features from Dataset...')
     dataset = loadDataset(verbose=False)
     train_split = int(0.8 * len(dataset))
     train, test = random_split(dataset, [train_split, len(dataset) - train_split])
 
-    print('Extracting features from Dataset...')
     train_dataloader = DataLoader(train, batch_size=32, collate_fn=lambda x: x)
     test_dataloader = DataLoader(test, batch_size=32)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -51,17 +48,18 @@ def TrasformerTrainer():
             # 112 stand for the src_dimension/9 the feature number
             padd = 112 - inputs.shape[1]
             inputs = torch.nn.functional.pad(inputs, (0,0,0,padd), mode='constant', value=0)
+
             labels = datapoint[idx]['label']
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
             outputs = transformer(inputs)
 
-        print(outputs.shape, labels.shape)
-        print(torch.sigmoid(outputs), labels)
-        loss = criterion(torch.sigmoid(outputs), labels)
-        loss.backward()
-        optimizer.step()
-        epoch_losses.append(loss.item())
+            print(f'Output from the model and true label: {torch.sigmoid(outputs), labels}')
+            loss = criterion(torch.sigmoid(outputs), labels)
+            loss.backward()
+            optimizer.step()
+            epoch_losses.append(loss.item())
+
         if epoch % 5 == 0:
             print(f">>> Epoch {epoch} train loss: ", np.mean(epoch_losses))
             epoch_losses = []
@@ -74,8 +72,9 @@ def TrasformerTrainer():
 
                 # Add padding to have always the same input dimension
                 # 112 stand for the src_dimension/9 the feature number
-                padd = 112 - inputs.shape[0]
+                padd = 112 - inputs.shape[1]
                 inputs = torch.nn.functional.pad(inputs, (0,0,0,padd), mode='constant', value=0).unsqueeze(0)
+
                 labels = test_datapoint[idx]['label']   
                 inputs, labels = inputs.to(device), labels.to(device)
                 outputs = transformer(inputs)
@@ -90,4 +89,5 @@ def TrasformerTrainer():
     # print("Predicted classes", outputs.argmax(-1))
     # print("Actual classes", labels)
 
-TrasformerTrainer()
+if __name__ == '__main__':
+    TrasformerTrainer()

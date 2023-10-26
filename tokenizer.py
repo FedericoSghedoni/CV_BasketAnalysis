@@ -1,25 +1,9 @@
 import torch
-import math
 import cv2
 from ultralytics import YOLO
 from pydantic import BaseModel
 import utils
 import numpy as np
-
-def calculate_angle(point1, point2, point3):
-    # Calcola il vettore tra point2 e point1
-    vector1 = (point1[0] - point2[0], point1[1] - point2[1])
-    vector2 = (point3[0] - point2[0], point3[1] - point2[1])
-
-    dot_product = vector1[0] * vector2[0] + vector1[1] * vector2[1]
-
-    norm1 = math.sqrt(vector1[0]**2 + vector1[1]**2)
-    norm2 = math.sqrt(vector2[0]**2 + vector2[1]**2)
-
-    angle_radians = math.acos(dot_product / (norm1 * norm2))
-    angle_degrees = math.degrees(angle_radians)
-
-    return angle_degrees / 180 # Normaalized Value
 
 class GetKeypoint(BaseModel):
     NOSE:           int = 0
@@ -91,7 +75,7 @@ class Tokenizer():
                 wrist = (x_wrist, y_wrist)  # Sostituisci con le coordinate del polso
                 shoulder = (x_shoulder, y_shoulder)  # Sostituisci con le coordinate della spalla
 
-                angle = calculate_angle(shoulder, elbow, wrist)
+                angle = utils.calculate_angle(shoulder, elbow, wrist)
                 shooting_angle = torch.tensor([angle])
                 # self.embedded_feature = self.embedded_feature.reshape(-1)
                 
