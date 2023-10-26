@@ -98,14 +98,11 @@ def updateData(pp_data, roi, h):
             pp_data[id].append(emb)
             for _ in range(3):
                 pp_data[id].append([0, 0])
-    print(f'{id,h} id, h')
+    #print(f'{id,h} id, h')
     if h >= 1.5 and h < 2.3:
         pp_data[id][1][1] += 1
         pp_data[id][1][0] = (pp_data[id][1][0] * (pp_data[id][1][1] - 1)  + h) / pp_data[id][1][1]      
     return pp_data, id
-
-#fl = Utils.FocalLength(100, 25, 'ref.jpg')
-#print(fl)
 
 def calculate_angle(point1, point2, point3):
     # Calcola il vettore tra point2 e point1

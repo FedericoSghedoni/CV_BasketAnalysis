@@ -18,7 +18,7 @@ Path = 'distance/'
 model_path = '../yolov8s_final/weights/best.pt'
 
 # Set video name
-video_name = 'IMG_4008.mp4'
+video_name = 'IMG_5000.mp4'
 size = len(video_name)
 # Nome nuovo video
 new_video = video_name[:size - 4] + 'l.mp4'
