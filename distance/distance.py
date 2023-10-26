@@ -56,8 +56,7 @@ while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
         break
-    
-    boxes = []
+
     # Esegue detection
     results = model(frame, conf=0.4)
 
