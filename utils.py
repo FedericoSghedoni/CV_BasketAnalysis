@@ -1,3 +1,4 @@
+import math
 import cv2
 from ultralytics import YOLO
 import numpy as np
@@ -6,6 +7,7 @@ Path = 'distance/'
 model_path = '../yolov8s_final/weights/best.pt'
 sens1 = 0.065 # distance from camera update sensibility
 sens2 = 0.045 # distance between r and p update sensibility
+sens3 = 0.055
 
 """
 This Function Calculate the Focal Length(distance between lens to CMOS sensor), it is simple constant we can find by using
@@ -15,7 +17,7 @@ MEASURED_DISTANCE, REAL_WIDTH(Actual width of object) and WIDTH_OF_OBJECT_IN_IMA
 :param3 Width_In_Image(int): It is object width in the frame /image in our case in the reference image(found by Face detector)
 :retrun Focal_Length(Float):
 """
-def FocalLength(measured_distance, real_width, ref_path):
+def FocalLength(measured_distance, bb_width, ref_path):
     # Carica il modello
     model = YOLO(model_path)
     # reading reference image from directory
@@ -38,7 +40,7 @@ def FocalLength(measured_distance, real_width, ref_path):
                     # Crea una lista per la riga corrente e aggiungi i valori
                     width_in_ref_image = row.xywh.tolist()[0][2]
     # print(width_in_ref_image)
-    focal_length = (width_in_ref_image * measured_distance) / real_width
+    focal_length = (width_in_ref_image * measured_distance) / bb_width
     # print(focal_length)
     return focal_length
 
@@ -52,66 +54,67 @@ def check_intersection(a, b):
     else:
         return 0
 
-def getHeight(results, focal_length, real_width):
-    for r in results:
-        #print(r.boxes.cls.tolist())
-        count_bb = r.boxes.cls.tolist().count(0.0)
-        count_people = r.boxes.cls.tolist().count(1.0)
-        if count_bb == 1 and count_people == 1:
-            boxes=[]
-            #print(r.boxes.data.tolist())
-            # Itera su ogni riga del tensore
-            for row in r.boxes:
-                #print(row.data.tolist()[0])
-                #print(row.data.tolist()[0][-1])
-                #print(row.xywh.tolist()[0][:])
-                if row.data.tolist()[0][-1] != 2.0:
-                    # Crea una lista per la riga corrente e aggiungi i valori
-                    riga_box = row.data.tolist()[0][:]
-                    # Aggiungi la lista alla lista 'boxes'
-                    boxes.append(riga_box)
-                
-            #print(f'{check_intersection(boxes[0],boxes[1])} check_intersection')
-            #print(boxes)
-
-            if check_intersection(boxes[0],boxes[1]):
-                h_pp_img = [box[3]-box[1] for box in boxes if box[-1] == 1.0]
-                w_bb_img = [box[2]-box[0] for box in boxes if box[-1] == 0.0]
-                bb_dist = focal_length * real_width[0] / w_bb_img[0]
-                #print(f'{h_pp_img} h_pp_img')
-                #print(f'{w_bb_img} w_bb_img')
-                #print(f'{bb_dist} bb_dist')
-                return (h_pp_img[0] * bb_dist) / focal_length
-        return 0
-
-def updateHeight(results, focal_length, real_width):
-    h = getHeight(results, focal_length, real_width)
-    #print(f'{h} altezza')
-    if h < 1.5 or h >= 2.3:
-        return real_width
-    else:
-        real_width[3] += 1
-        real_width[1] = (real_width[1] * (real_width[3] - 1)  + h) / real_width[3]
-        return real_width
-
-def updateCamDist(real_distance, d, cls):
-    #print(f'{d,cls} d, cls')
-    if abs(d - real_distance[cls]) > (sens1 * (real_distance[3+cls] + 1)) and real_distance[cls] != 0:
-        #print(f'{np.sign(real_distance[cls] - d)} np.sign(real_distance[cls] - d)')
-        real_distance[cls] += np.sign(d - real_distance[cls]) * (sens1 * (real_distance[3+cls] + 1))
-    else:
-        real_distance[cls] = d
-    return real_distance
-
-def updateDistance(distance, d):
+def updateDistance(old_d, new_d, count):
     #print(f'{distance,d} distance, d')
-    if abs(d - distance[0]) > (sens2 * (distance[1] + 1)) and distance[0] != 0:
+    if abs(new_d - old_d) > (sens2 * count) and old_d != 0:
         #print(f'{np.sign(real_distance[cls] - d)} np.sign(real_distance[cls] - d)')
-        distance[0] += np.sign(d - distance[0]) * (sens2 * (distance[1] + 1))
+        d = old_d + np.sign(new_d - old_d) * (sens3 * count)
     else:
-        distance[0] = d
-    return distance
-   
+        d = new_d
+    return d
 
-#fl = Utils.FocalLength(100, 25, 'ref.jpg')
-#print(fl)
+def checkRoi(pp_data, emb):
+    for key in pp_data.keys():
+        # Calcola la distanza euclidea
+        eucl_dist = np.linalg.norm(emb - pp_data[key][0])
+        print(f'{eucl_dist} eucl_dist')
+        if eucl_dist < 8:
+            return key
+    return 0
+    
+def Embedding(roi):
+    emb = np.array([])
+    # Crea un modello di colore basato sulla media dei colori nella ROI
+    emb = np.append(emb, np.mean(roi, axis=(0, 1)))
+    return emb
+
+def updateData(pp_data, roi, h):
+    id = '001'
+    emb = Embedding(roi)
+    if len(pp_data) == 0:
+        pp_data[id] = []
+        pp_data[id].append(emb)
+        for _ in range(3):
+            pp_data[id].append([0, 0])
+    else:
+        idm = checkRoi(pp_data, emb)
+        if idm:
+            id = idm
+            pp_data[id][0] = emb
+        else:  
+            max_key = max(pp_data.keys())
+            id = str(int(max_key) + 1).zfill(3)
+            pp_data[id] = []
+            pp_data[id].append(emb)
+            for _ in range(3):
+                pp_data[id].append([0, 0])
+    #print(f'{id,h} id, h')
+    if h >= 1.5 and h < 2.3:
+        pp_data[id][1][1] += 1
+        pp_data[id][1][0] = (pp_data[id][1][0] * (pp_data[id][1][1] - 1)  + h) / pp_data[id][1][1]      
+    return pp_data, id
+
+def calculate_angle(point1, point2, point3):
+    # Calcola il vettore tra point2 e point1
+    vector1 = (point1[0] - point2[0], point1[1] - point2[1])
+    vector2 = (point3[0] - point2[0], point3[1] - point2[1])
+
+    dot_product = vector1[0] * vector2[0] + vector1[1] * vector2[1]
+
+    norm1 = math.sqrt(vector1[0]**2 + vector1[1]**2)
+    norm2 = math.sqrt(vector2[0]**2 + vector2[1]**2)
+
+    angle_radians = math.acos(dot_product / (norm1 * norm2))
+    angle_degrees = math.degrees(angle_radians)
+
+    return angle_degrees / 180 # Normaalized Value
