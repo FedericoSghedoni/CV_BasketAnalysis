@@ -10,6 +10,7 @@ import utils
 
 # Set to True to show every frame, False to create a video of the frames with BB
 show = True
+video_w = False
 
 # Set working folder path
 Path = 'distance/'
@@ -18,7 +19,7 @@ Path = 'distance/'
 model_path = '../yolov8s_final/weights/best.pt'
 
 # Set video name
-video_name = 'IMG_5000.mp4'
+video_name = 'IMG_4037.mp4'
 size = len(video_name)
 # Nome nuovo video
 new_video = video_name[:size - 4] + 'l.mp4'
@@ -45,7 +46,7 @@ model = YOLO(model_path)
 # Legge un frame
 ret, frame = cap.read()
 
-if not show:
+if video_w:
     # Crea writer
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     fps = 30
@@ -56,9 +57,8 @@ while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
         break
-
     # Esegue detection
-    results = model(frame, conf=0.4)
+    results = model(frame, conf=0.4, verbose=False)
 
     for r in results:
         im_array = r.plot()  # plot a BGR numpy array of predictions
@@ -81,37 +81,23 @@ while cap.isOpened():
                 distance = focal_length * real_width[0] / riga_box[2]
                 real_distance[0] = utils.updateDistance(real_distance[0], distance, real_distance[2])
                 real_distance[2] = 0
-                cv2.putText(im_array, f'Dist: {real_distance[0]:.1f} m', (int(riga_box[0]- (riga_box[2]/2)), int(riga_box[1] - (riga_box[3]/2) - 30)), 
+                cv2.putText(im_array, f'C-dist: {real_distance[0]:.1f} m', (int(riga_box[0]- (riga_box[2]/2)), int(riga_box[1] - (riga_box[3]/2) - 30)), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, colors[0], 2)
                 
             elif row.data.tolist()[0][-1] == 1.0:
-                p_h = 0
+                p_h = 0 # person height
                 # Prova a calcolare altezza persona
-                if count[0] == 1:
-                    bb_box = [box.data.tolist()[0] for box in r.boxes if box.data.tolist()[0][-1] == 0.0][0]
-                    pp_box = row.data.tolist()[0][:]
-                    if utils.check_intersection(bb_box, pp_box):
-                        h_pp_img = pp_box[3] - pp_box[1]
-                        w_bb_img = bb_box[2] - bb_box[0]
-                        bb_dist = focal_length * real_width[0] / w_bb_img
-                        #print(f'{h_pp_img} h_pp_img')
-                        #print(f'{w_bb_img} w_bb_img')
-                        #print(f'{bb_dist} bb_dist') 
-                        p_h = (h_pp_img * bb_dist) / focal_length
+                if count[0] >= 1:
+                    for bb_box in [box.data.tolist()[0] for box in r.boxes if box.data.tolist()[0][-1] == 0.0]:
+                        pp_box = row.data.tolist()[0][:]
+                        if utils.check_intersection(bb_box, pp_box):
+                            h_pp_img = pp_box[3] - pp_box[1]
+                            w_bb_img = bb_box[2] - bb_box[0]
+                            bb_dist = focal_length * real_width[0] / w_bb_img
+                            p_h = (h_pp_img * bb_dist) / focal_length
                         
                 x,y,w,h = [int(item) for item in (row.xywh.tolist()[0])]
-                roi = frame[y-h//2:y+h//2, x-w//2:x+w//2]
-                
-                #if show:   
-                #    cv2.imshow('Immagini', roi)
-                #    k = cv2.waitKey(0)
-                #    scelta = k - 48
-                #    if scelta == 0:
-                #        pass
-                #    elif scelta == 1:
-                #        pass
-                #    elif scelta == -21:
-                #        sys.exit()
+                roi = [frame[y-int(h*1//2):y+int(h*1//2), x-int(w*1//2):x+int(w*1//2)], [x, y]] # test con *0.9
                 
                 pp_data, id = utils.updateData(pp_data, roi, p_h)
                 # Crea una lista per la riga corrente e aggiungi i valori
@@ -120,7 +106,9 @@ while cap.isOpened():
                 pp_data[id][2][0] = utils.updateDistance(pp_data[id][2][0], distance, pp_data[id][2][1])
                 # azzero contatore emb
                 pp_data[id][2][1] = 0
-                cv2.putText(im_array, f'Dist Cam: {pp_data[id][2][0]:.1f} m', (int(riga_box[0]- (riga_box[2]/2)), int(riga_box[1] - (riga_box[3]/2) - 30)), 
+                cv2.putText(im_array, f'{id} C-dist: {pp_data[id][2][0]:.1f} m', (int(riga_box[0]- (riga_box[2]/2)), int(riga_box[1] - (riga_box[3]/2) - 30)), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, colors[1], 2)
+                cv2.putText(im_array, f'{id} h: {pp_data[id][1][0]:.2f} m', (int(riga_box[0]- (riga_box[2]/2)), int(riga_box[1] - (riga_box[3]/2) - 70)), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, colors[1], 2)
                 
                 if count[2] == 1 and pp_data[id][2][0] != 0 and real_distance[1] != 0:
@@ -128,7 +116,7 @@ while cap.isOpened():
                     # Calcola la distanza in pixel tra i due oggetti
                     pixel_dist = abs(riga_box[0] - rim_box[0]) - 10
                     scale_dist = pixel_dist * min(pp_data[id][2][0], real_distance[1]) / focal_length
-                    cv2.line(im_array, (int(riga_box[0]),int(max(riga_box[1], rim_box[1]))), (int(rim_box[0]),int(max(riga_box[1], rim_box[1]))), (0, 0, 255), 2)
+                    #cv2.line(im_array, (int(riga_box[0]),int(max(riga_box[1], rim_box[1]))), (int(rim_box[0]),int(max(riga_box[1], rim_box[1]))), (0, 0, 255), 2)
                     #p = (real_distance[1] + real_distance[2] + scale_dist) / 2
                     #h = np.sqrt(p * (p - real_distance[1]) * (p - real_distance[2]) * (p - scale_dist)) * 2 / max(real_distance[1], real_distance[2])
                     #b = np.sqrt(1 - (h / min(real_distance[1], real_distance[2])) ** 2) * min(real_distance[1], real_distance[2])
@@ -139,10 +127,10 @@ while cap.isOpened():
                     pp_data[id][3][0] = utils.updateDistance(pp_data[id][3][0], d, pp_data[id][3][1])
                     pp_data[id][3][1] = 0
                     # Visualizza la distanza sul frame
-                    cv2.putText(im_array, f'Dist Rim: {pp_data[id][3][0]:.1f} m', (int(riga_box[0]- (riga_box[2]/2)), int(riga_box[1] - (riga_box[3]/2) - 50)), 
+                    cv2.putText(im_array, f'{id} R-dist: {pp_data[id][3][0]:.1f} m', (int(riga_box[0]- (riga_box[2]/2)), int(riga_box[1] - (riga_box[3]/2) - 50)), 
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
                     
-                print(f'{pp_data, id} pp_data, id')  
+                #print(f'{pp_data, id} pp_data, id')  
                                
             elif row.data.tolist()[0][-1] == 2.0:
                 # Crea una lista per la riga corrente e aggiungi i valori
@@ -150,11 +138,12 @@ while cap.isOpened():
                 distance = focal_length * real_width[1] / riga_box[2]
                 real_distance[1] = utils.updateDistance(real_distance[1], distance, real_distance[3])
                 real_distance[3] = 0
-                cv2.putText(im_array, f'Dist: {real_distance[1]:.1f} m', (int(riga_box[0] - (riga_box[2]/2)), int(riga_box[1] - (riga_box[3]/2) - 30)), 
+                cv2.putText(im_array, f'C-dist: {real_distance[1]:.1f} m', (int(riga_box[0] - (riga_box[2]/2)), int(riga_box[1] - (riga_box[3]/2) - 30)), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, colors[2], 2)
 
-        if show:
-            cv2.namedWindow('Immagini', cv2.WINDOW_AUTOSIZE) 
+        if show: 
+            cv2.namedWindow('Immagini', cv2.WINDOW_KEEPRATIO)
+            cv2.resizeWindow('Immagini', 540, 960)
             cv2.imshow('Immagini', im_array)
             k = cv2.waitKey(0)
             scelta = k - 48
@@ -165,10 +154,10 @@ while cap.isOpened():
             elif scelta == -21:
                 sys.exit()
             
-    if not show:        
+    if video_w:        
         video_writer.write(im_array)
 
-if not show:        
+if video_w:        
     video_writer.release()
 cap.release()
 cv2.destroyAllWindows()
