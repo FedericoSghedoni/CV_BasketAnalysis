@@ -44,7 +44,8 @@ class Tokenizer():
         detections = self.detector(frame, verbose=False) 
         # To show the detection use the line below
         # detections.show()
-        dist, im_array = self.getDistance(detections, frame)
+        im_array = None
+        # dist, im_array = self.getDistance(detections, frame)
         # print(f'{dist} dist')
         # frame = cv2.cvtColor(im_array, cv2.COLOR_GRAY2BGR)
         for detection in detections[0].boxes:
@@ -77,6 +78,10 @@ class Tokenizer():
                 # self.embedded_feature = self.embedded_feature.reshape(-1)
                 
                 new_feature = torch.cat((new_feature, shooting_angle), dim=0)
+            else:
+                shooting_angle = torch.tensor([0])
+                new_feature = torch.cat((new_feature, shooting_angle), dim=0)
+
         self.embedded_feature = torch.cat((self.embedded_feature, new_feature.unsqueeze(0)), dim=0)
         return im_array, detections[0].boxes
     
@@ -167,7 +172,7 @@ class Tokenizer():
                     cv2.putText(im_array, f'Dist Rim: {self.pp_data[id][3][0]:.1f} m', (int(riga_box[0]- (riga_box[2]/2)), int(riga_box[1] - (riga_box[3]/2) - 50)), 
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
                     
-                print(f'{self.pp_data, id} self.pp_data, id')  
+                #print(f'{self.pp_data, id} self.pp_data, id')  
                                
             elif row.data.tolist()[0][-1] == 2.0:
                 # Crea una lista per la riga corrente e aggiungi i valori

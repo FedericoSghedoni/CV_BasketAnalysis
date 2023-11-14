@@ -39,7 +39,7 @@ class BasketDataset(Dataset):
         cap.release()
         
         sample = {'emb_fea': self.tokenizer.embedded_feature, 'label': label}
-        print('Extracting features...')
+        self.tokenizer.embedded_feature = torch.Tensor()
         return sample
 
 def loadDataset(verbose=False):

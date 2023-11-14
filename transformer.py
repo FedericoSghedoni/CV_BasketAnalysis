@@ -29,11 +29,13 @@ class Transformer(nn.Module):
         self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=8)
 
         # Classification Head
+        # We don't use a sigmoid function at the end since the loss used
+        # is the Binary Cross Entropy which already apply a sigmoid
         self.classifier = nn.Sequential(
             nn.LayerNorm(d_model + 1),
             nn.Linear(d_model + 1, d_model // 2),
             nn.SiLU(),
-            nn.Dropout(0.2),
+            nn.Dropout(0.1),
             nn.Linear(d_model // 2, d_model // 4),
             nn.SiLU(),
             nn.Dropout(0.1),
