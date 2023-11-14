@@ -27,8 +27,8 @@ class GetKeypoint(BaseModel):
 class Tokenizer():
 
     def __init__(self, path_to_model) -> None:
-        self.rim_coord = torch.zeros(4) # 4 features x,y,w,h
-        self.ball_coord = torch.zeros(4) # 4 features x,y,w,h
+        self.rim_coord = torch.zeros([1,4]) # 4 features x,y,w,h
+        self.ball_coord = torch.zeros([1,4]) # 4 features x,y,w,h
         self.embedded_feature = torch.Tensor() # rim and ball features (8), joint angle and distance from the rim
         self.detector = YOLO(path_to_model)
         self.pose = YOLO('yolov8n-pose.pt')
