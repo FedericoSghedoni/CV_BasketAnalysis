@@ -9,8 +9,8 @@ import utils
 # sempre vero a meno che non si usino grandangoli
 
 # Set to True to show every frame, False to create a video of the frames with BB
-show = True
-video_w = False
+show = False
+video_w = True
 
 # Set working folder path
 Path = 'distance/'
@@ -19,7 +19,7 @@ Path = 'distance/'
 model_path = '../yolov8s_final/weights/best.pt'
 
 # Set video name
-video_name = 'IMG_4037.mp4'
+video_name = 'IMG_4040.mp4'
 size = len(video_name)
 # Nome nuovo video
 new_video = video_name[:size - 4] + 'l.mp4'
