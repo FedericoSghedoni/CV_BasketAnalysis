@@ -1,3 +1,4 @@
+import math
 import torch
 import cv2
 from ultralytics import YOLO
@@ -74,6 +75,8 @@ class Tokenizer():
                 shoulder = (x_shoulder, y_shoulder)  # Sostituisci con le coordinate della spalla
 
                 angle = utils.calculate_angle(shoulder, elbow, wrist)
+                if math.isnan(angle):
+                    angle = 0
                 shooting_angle = torch.tensor([angle])
                 # self.embedded_feature = self.embedded_feature.reshape(-1)
                 
