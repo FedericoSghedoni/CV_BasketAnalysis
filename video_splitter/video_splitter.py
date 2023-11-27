@@ -2,10 +2,8 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 import sys
-sys.path.append("C:/Users/acer/Documents/GitHub/CV_BasketAnalysis")
+sys.path.append("C:/Users/alejb/Documents/GitHub/CV_BasketAnalysis")
 import utils
-
-
 
 
 class Buffer:
@@ -37,13 +35,13 @@ class Buffer:
 # sempre vero a meno che non si usino grandangoli
 
 # Set working folder path
-Path = 'C:/Users/acer/Documents/GitHub/CV_BasketAnalysis/video_splitter/video/'
+Path = 'C:/Users/alejb/Documents/GitHub/CV_BasketAnalysis/video_splitter/video/'
 
 # Set model path
 model_path = '../yolov8s_final/weights/best.pt'
 
 # Set video name
-video_name = 'IMG_4158.mov'
+video_name = 'IMG_4442.MOV'
 size = len(video_name)
 new_video = video_name[:size - 4] + 'l.mp4'
 
@@ -57,7 +55,7 @@ model = YOLO(model_path)
 ret, frame = cap.read()
 
 # Imposta il percorso completo per il file video tagliato
-output_path = 'C:/Users/acer/Documents/GitHub/CV_BasketAnalysis/video_splitter/'
+output_path = 'C:/Users/alejb/Documents/GitHub/CV_BasketAnalysis/video_splitter/'
 
 video_counter = 1
 
@@ -70,25 +68,30 @@ video_writer = cv2.VideoWriter(output_path + video_name,  fourcc, fps, (width, h
 
 
 save = False
-initial_count = 0  # Inizializza il conteggio dei frame
 frame_buffer = Buffer(35)
-after_frame = 0
 ball_y1 = None  # Coordinata Y della palla
 ball_y2 = None  # Coordinata Y della palla
 person_y = None  # Coordinata Y della persona
 hoop_y = None
 ball = None
 person = None 
+frame_counter = 0
+
 
 while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
         break
-    
-    # Esegue detection
-    results = model(frame, conf=0.4)
 
-# Visualize the results on the frame
+    if frame_counter > 45:
+        #print("FINE")
+        save = False
+        frame_counter = 0
+
+    # Esegue detection
+    results = model(frame, conf=0.4, verbose = False)
+
+    # Visualize the results on the frame
     annotated_frame = results[0].plot()
 
     # Display the annotated frame
@@ -98,7 +101,6 @@ while cap.isOpened():
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
 
- 
 
     for r in results:
         im_array = r.plot()  # plot a BGR numpy array of predictions
@@ -152,36 +154,15 @@ while cap.isOpened():
                 if save and not utils.check_intersection(ball, person):
                     #print('FINE')
                     save = False
+                    frame_counter = 0
 
         if save:
             video_writer.write(frame)
+            frame_counter +=1 
 
         if not save:
             frame_buffer.push(frame)                                
                     
-                    
-                    
-                
-                
-                
-
-                
-                
-            #print(boxes)       
-            
-
-        #    cv2.imshow('Immagini', im_array)
-        #    k = cv2.waitKey(0)
-        #    scelta = k - 48
-        #    if scelta == 0:
-        #        pass
-        #    elif scelta == 1:
-        #        pass
-        #    elif scelta == -21:
-        #        sys.exit()
-        
-            
-    #video_writer.write(im_array)
 video_writer.release()
 cap.release()
 cv2.destroyAllWindows()
