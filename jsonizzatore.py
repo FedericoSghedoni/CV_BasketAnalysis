@@ -8,7 +8,7 @@ from ultralytics import YOLO
 import sys
 
 # Get the video files in the folder
-folder_path= '../CVDataset/transformer_dataset/fuori/'
+folder_path= '../CVDataset/transformer_dataset/canestro/'
 classes = torch.Tensor([1., 2., 3.])
 folder = 'json/'
 dest_folder = folder + folder_path.split('/')[3] + '/'
@@ -26,7 +26,7 @@ for video_file in [f for f in os.listdir(folder_path) if f.endswith('.mp4')]:
     size = len(video_file)
     name = video_file[:size - 4]
     file = name + '.json'
-
+    show = True
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         print(f"Error: Could not open video file {video_path}")
@@ -36,7 +36,13 @@ for video_file in [f for f in os.listdir(folder_path) if f.endswith('.mp4')]:
     # Read and process frames one at a time
     while True:
         ret, frame = cap.read()
-
+        if frame.shape[:2][0] != frame.shape[:2][1]:
+            # Ritagliare l'immagine: taglia 190 pixel dall'alto e 370 dal basso
+            frame = frame[190:frame.shape[:2][0]-370, :]
+        if show:
+            cv2.imshow('belllaaaa',frame)
+            cv2.waitKey(0)
+            show=False
         # here the magic happens
         if not ret:
             # j number of frames seen, used for naming the new files + the padding up to 160
