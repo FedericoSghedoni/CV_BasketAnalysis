@@ -53,24 +53,25 @@ def TrasformerTrainer():
         epoch_losses = []
         transformer.train()
         # Select one video at time
-        for idx, datapoint in enumerate(train_dataloader):
-            # Add a dimension for the batch dimension, in this implemantion is 1
-            inputs = datapoint[idx]['emb_fea'].unsqueeze(0)
+        for datapoint in train_dataloader:
+            for idx in range(datapoint['label'].shape[0]):
+                # Add a dimension for the batch dimension, in this implemantion is 1
+                inputs = datapoint['emb_fea'][idx].unsqueeze(0)
 
-            # Add padding to have always the same input dimension
-            # 112 stand for the src_dimension/9 the feature number
-            # padd = 112 - inputs.shape[1]
-            # inputs = torch.nn.functional.pad(inputs, (0,0,0,padd), mode='constant', value=0)
+                # Add padding to have always the same input dimension
+                # 112 stand for the src_dimension/9 the feature number
+                # padd = 112 - inputs.shape[1]
+                # inputs = torch.nn.functional.pad(inputs, (0,0,0,padd), mode='constant', value=0)
 
-            labels = datapoint[idx]['label']
-            inputs, labels = inputs.to(device), labels.to(device)
-            optimizer.zero_grad()
-            outputs = transformer(inputs)
-            print(f'Output from the model and true label: {outputs, labels}')
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
-            epoch_losses.append(loss.item())
+                labels = datapoint['label'][idx]
+                inputs, labels = inputs.to(device), labels.to(device)
+                optimizer.zero_grad()
+                outputs = transformer(inputs)
+                # print(f'Output from the model and true label: {outputs, labels}')
+                loss = criterion(outputs, labels)
+                loss.backward()
+                optimizer.step()
+                epoch_losses.append(loss.item())
         print(f">>> Epoch {epoch} train loss: ", np.mean(epoch_losses))
 
         data = [epoch,np.mean(epoch_losses)]
@@ -80,21 +81,21 @@ def TrasformerTrainer():
             epoch_losses = []
 
             transformer.eval()
-            for idx, test_datapoint in enumerate(test_dataloader):
+            for test_datapoint in test_dataloader:
+                for idx in range(test_datapoint['label'].shape[0]):
+                    # Select one video at time, repeat the same steps as before 
+                    inputs = test_datapoint['emb_fea'][idx].unsqueeze(0)
 
-                # Select one video at time, repeat the same steps as before 
-                inputs = test_datapoint[idx]['emb_fea'].unsqueeze(0)
+                    # Add padding to have always the same input dimension
+                    # 112 stand for the src_dimension/9 the feature number
+                    # padd = 112 - inputs.shape[1]
+                    # inputs = torch.nn.functional.pad(inputs, (0,0,0,padd), mode='constant', value=0)
 
-                # Add padding to have always the same input dimension
-                # 112 stand for the src_dimension/9 the feature number
-                # padd = 112 - inputs.shape[1]
-                # inputs = torch.nn.functional.pad(inputs, (0,0,0,padd), mode='constant', value=0)
-
-                labels = test_datapoint[idx]['label']   
-                inputs, labels = inputs.to(device), labels.to(device)
-                outputs = transformer(inputs)
-                loss = criterion(outputs, labels)
-                epoch_losses.append(loss.item())
+                    labels = test_datapoint['label'][idx]   
+                    inputs, labels = inputs.to(device), labels.to(device)
+                    outputs = transformer(inputs)
+                    loss = criterion(outputs, labels)
+                    epoch_losses.append(loss.item())
             print(f">>> Epoch {epoch} test loss: ", np.mean(epoch_losses))
 
     return transformer
