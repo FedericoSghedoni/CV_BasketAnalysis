@@ -158,7 +158,17 @@ def calculate_angle(point1, point2, point3):
     norm1 = math.sqrt(vector1[0]**2 + vector1[1]**2)
     norm2 = math.sqrt(vector2[0]**2 + vector2[1]**2)
 
-    angle_radians = math.acos(dot_product / (norm1 * norm2))
-    angle_degrees = math.degrees(angle_radians)
+    if norm1 != 0 and norm2 != 0:
+        # Calculate the value for acos
+        value = dot_product / (norm1 * norm2)
+
+        # Check if the value is within the valid range for arc cosine
+        if -1 <= value <= 1:
+            angle_radians = math.acos(value)
+        else:
+            angle_radians = 0
+        angle_degrees = math.degrees(angle_radians)
+        
+    else: angle_degrees = 0
 
     return angle_degrees / 180 # Normaalized Value

@@ -8,10 +8,11 @@ from ultralytics import YOLO
 import sys
 
 # Get the video files in the folder
-folder_path= 'dataset/canestro/'
+folder_path= '../CVDataset/transformer_dataset/fuori/'
 classes = torch.Tensor([1., 2., 3.])
 folder = 'json/'
-dest_folder = folder + folder_path.split('/')[1] + '/'
+dest_folder = folder + folder_path.split('/')[3] + '/'
+max_length, video_name = (160,'')
 
 tok = Tokenizer(path_to_model='yolov8s_final/weights/best.pt')
 
@@ -38,13 +39,16 @@ for video_file in [f for f in os.listdir(folder_path) if f.endswith('.mp4')]:
 
         # here the magic happens
         if not ret:
-            # j number of frames seen, used for naming the new files
-            for j in range(tok.embedded_feature.shape[0]):
+            # j number of frames seen, used for naming the new files + the padding up to 160
+            for j in range(160):
                 
-                if j >= 110: print(j)
+                if j > max_length:
+                    max_length, video_name = j, video_path
 
                 index = 'frame_' + str(j)
-                dati[index] = tok.embedded_feature[j].numpy().tolist()
+                if j < tok.embedded_feature.shape[0]:
+                    dati[index] = tok.embedded_feature[j].numpy().tolist()
+                else: dati[index] = [0,0,0,0,0,0,0,0,0]
             with open(dest_folder + file, 'w') as wfile:
                 json.dump(dati, wfile)
                 print(f'Data written for {file}')
@@ -57,3 +61,4 @@ for video_file in [f for f in os.listdir(folder_path) if f.endswith('.mp4')]:
         tok.detect_objects(frame)
 
     cap.release()
+print(f'The maximum length readed is {max_length} in the {video_path} file')

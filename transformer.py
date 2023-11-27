@@ -40,6 +40,7 @@ class Transformer(nn.Module):
             nn.SiLU(),
             nn.Dropout(0.1),
             nn.Linear(d_model // 4, tgt_size),
+            nn.Sigmoid()
         )
 
     def forward(self, src):
