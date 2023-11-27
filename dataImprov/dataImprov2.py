@@ -8,17 +8,17 @@ import sys
 # !!! THIS VERSION SHOW YOU THE IMG BEFORE SAVING IT
 
 # Get the video files in the folder
-folder_path= '../CVDataset/dataset/ours/video3/'
-model = YOLO('yolov8s_custom/weights/best.pt')
-classes = torch.Tensor([1., 2., 3.])
-folder = 'dataset5/'
+folder_path= '../CVDataset/dataset/ours/'
+model = YOLO('yolov8s_final/weights/best.pt')
+classes = torch.Tensor([0., 1., 2.])
+folder = 'dataset2/'
 # Crea le cartelle di destinazione se non esistono già
 for f in ['', 'detected_files/', 'new_labels/', 'new_images/']:
     if not os.path.exists(os.path.join(folder, f)):
         os.makedirs(os.path.join(folder, f))
 j = 0 # number of opened files, used for naming the new files
 
-for video_file in [f for f in os.listdir(folder_path) if f.endswith('.mp4')]:
+for video_file in [f for f in os.listdir(folder_path) if f.endswith('.MOV')]:
     j += 1
     video_path = os.path.join(folder_path, video_file)
     size = len(video_file)
@@ -37,10 +37,12 @@ for video_file in [f for f in os.listdir(folder_path) if f.endswith('.mp4')]:
         if not ret:
             break  # End of the video file
         
+        # Ritagliare l'immagine: taglia 190 pixel dall'alto e 370 dal basso
+        frame = frame[190:frame.shape[:2][0]-370, :]
         i += 1 # add 1 to the count
         k += 1 # add 1 to the count
         if k >= 20:
-            results = model(frame, conf=0.4)
+            results = model(frame, conf=0.25, verbose=True)
             for r in results:
                 if set(r.boxes.cls.tolist()) == set(classes.tolist()):
                     im_array = r.plot()  # plot a BGR numpy array of predictions

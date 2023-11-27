@@ -80,6 +80,9 @@ frame_counter = 0
 
 while cap.isOpened():
     ret, frame = cap.read()
+
+    # Ritagliare l'immagine: taglia 190 pixel dall'alto e 370 dal basso
+    frame = frame[190:frame.shape[:2][0]-370, :]
     if not ret:
         break
 
