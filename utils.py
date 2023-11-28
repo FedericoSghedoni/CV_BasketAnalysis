@@ -172,3 +172,28 @@ def calculate_angle(point1, point2, point3):
     else: angle_degrees = 0
 
     return angle_degrees / 180 # Normaalized Value
+
+class Buffer:
+    def __init__(self, max_length):
+        self.stack = []
+        self.max_length = max_length
+
+    def push(self, item):
+        self.stack.append(item)
+        if len(self.stack) > self.max_length:
+            self.stack.pop(0)
+
+    def pop(self):
+        if not self.is_empty():
+            return self.stack.pop()
+        else:
+            return None
+
+    def is_empty(self):
+        return len(self.stack) == 0
+
+    def size(self):
+        return len(self.stack)
+    
+    def clear(self):
+        self.stack = []
