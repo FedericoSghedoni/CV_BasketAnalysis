@@ -21,7 +21,7 @@ output_path = 'video_splitter/'
 model_path = '../yolov8s_final/weights/best.pt'
 
 # Set video name
-video_name = 'IMG_4442.MOV'
+video_name = 'IMG_4442.mp4'
 
 if not os.path.exists(bin):
     os.makedirs(bin)
@@ -33,7 +33,8 @@ cap = cv2.VideoCapture(f'{Path}{video_name}')
 model = YOLO(model_path)
 
 save = False
-frame_buffer = utils.Buffer(35)
+frame_buffer = utils.Buffer(30)
+buff_size = 0
 ball_y1 = None  # Coordinata Y della palla
 ball_y2 = None  # Coordinata Y della palla
 person_y = None  # Coordinata Y della persona
@@ -58,9 +59,10 @@ while cap.isOpened():
     # Ritagliare l'immagine: taglia 190 pixel dall'alto e 370 dal basso
     frame = frame[190:frame.shape[:2][0]-370, :]
 
-    if frame_counter > 90:
-        print("FINE 1")
+    if frame_counter > 110:
+        print(f'FINE 1 {video_name[:-4]}_tiro_{video_counter-1}.mp4')
         save = False
+        video_writer.release()
         frame_counter = 0
 
     # Esegue detection
@@ -70,7 +72,7 @@ while cap.isOpened():
     annotated_frame = results[0].plot()
 
     # Display the annotated frame
-    cv2.imshow("YOLOv8 Inference", annotated_frame)
+    #cv2.imshow("YOLOv8 Inference", annotated_frame)
 
     # Break the loop if 'q' is pressed
     if cv2.waitKey(1) & 0xFF == ord("q"):
@@ -103,28 +105,29 @@ while cap.isOpened():
             if ball_y2 <= person_y:
                 # Inizia a salvare il video
                 if not save:
-                    print('INIZIO')
+                    print(f'INIZIO {video_name[:-4]}_tiro_{video_counter}.mp4')
                     height, width, channels = frame.shape
-                    new_video = 'tiro_{:d}.mp4'.format(video_counter)
+                    new_video = video_name[:-4] + '_' + 'tiro_{:d}.mp4'.format(video_counter)
                     video_writer = cv2.VideoWriter(output_path + new_video, fourcc, fps, (width, height))
                     save = True
                     video_counter += 1
                     for f in frame_buffer.stack:
                         video_writer.write(f)
                     frame_counter = frame_buffer.size()
+                    buff_size = frame_buffer.size()
                     frame_buffer.clear()
-
-            elif ball_y1 > hoop_y + 5 or ball_y1 > person_y:
+            elif ball_y1 > hoop_y + 4 or ball_y1 > person_y:
                 # Interrompi il salvataggio se la condizione non è soddisfatta
-                if save and not utils.check_intersection(ball, person):
+                #if save and not utils.check_intersection(ball, person):
+                if save and (frame_counter - buff_size) > 6:
                     print('FINE 2')
                     save = False
                     video_writer.release()
-                    if frame_counter < 45:
-                        src = output_path + 'tiro_{:d}.mp4'.format(video_counter-1)
-                        dest = bin + 'tiro_{:d}.mp4'.format(video_counter-1)
+                    if frame_counter < 50:
+                        src = output_path + video_name[:-4] + '_' + 'tiro_{:d}.mp4'.format(video_counter-1)
+                        dest = bin + video_name[:-4] + '_' + 'tiro_{:d}.mp4'.format(video_counter-1)
                         os.rename(src,dest)
-                    frame_counter = 0
+                    frame_counter = 0         
 
         if save:
             video_writer.write(frame)
