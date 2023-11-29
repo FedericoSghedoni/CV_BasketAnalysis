@@ -1,35 +1,36 @@
 import cv2
 import numpy as np
+import os
 from ultralytics import YOLO
 import sys
-sys.path.append("C:/Users/alejb/Documents/GitHub/CV_BasketAnalysis")
+sys.path.append('C:/Users/sghe9/Desktop/CV_BasketAnalysis')
+#sys.path.append("C:/Users/alejb/Documents/GitHub/CV_BasketAnalysis")
 import utils
 
-# !! distanza tra rim e player deve essere minore almeno di una tra distanza rim/camera e distanza player/camera, 
-# sempre vero a meno che non si usino grandangoli
 
 # Set working folder path
 Path = 'video_splitter/video/'
+
+# Set bin folder path
+bin = 'video_splitter/bin/'
+
+# Set path per i files video tagliati
+output_path = 'video_splitter/'
 
 # Set model path
 model_path = '../yolov8s_final/weights/best.pt'
 
 # Set video name
 video_name = 'IMG_4442.MOV'
-size = len(video_name)
-new_video = video_name[:size - 4] + 'l.mp4'
+
+if not os.path.exists(bin):
+    os.makedirs(bin)
 
 # Carica il video
 cap = cv2.VideoCapture(f'{Path}{video_name}')
 
 # Carica il modello
 model = YOLO(model_path)
-
-# Legge un frame
-ret, frame = cap.read()
-
-# Imposta il percorso per il file video tagliato
-output_path = 'video_splitter/'
 
 save = False
 frame_buffer = utils.Buffer(35)
@@ -41,21 +42,24 @@ ball = None
 person = None 
 frame_counter = 0
 video_counter = 1
+video_writer =  None
 
 # Setta writer
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 fps = 30
 
 while cap.isOpened():
+    # Legge un frame
     ret, frame = cap.read()
 
-    # Ritagliare l'immagine: taglia 190 pixel dall'alto e 370 dal basso
-    frame = frame[190:frame.shape[:2][0]-370, :]
     if not ret:
         break
+    
+    # Ritagliare l'immagine: taglia 190 pixel dall'alto e 370 dal basso
+    frame = frame[190:frame.shape[:2][0]-370, :]
 
-    if frame_counter > 45:
-        #print("FINE")
+    if frame_counter > 90:
+        print("FINE 1")
         save = False
         frame_counter = 0
 
@@ -66,12 +70,11 @@ while cap.isOpened():
     annotated_frame = results[0].plot()
 
     # Display the annotated frame
-    #cv2.imshow("YOLOv8 Inference", annotated_frame)
+    cv2.imshow("YOLOv8 Inference", annotated_frame)
 
     # Break the loop if 'q' is pressed
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
-
 
     for r in results:
         # conta detection
@@ -100,21 +103,27 @@ while cap.isOpened():
             if ball_y2 <= person_y:
                 # Inizia a salvare il video
                 if not save:
-                    #print('INIZIO')
-                    height, width = frame.shape
-                    video_name = 'tiro_{:d}.mp4'.format(video_counter)
+                    print('INIZIO')
+                    height, width, channels = frame.shape
+                    new_video = 'tiro_{:d}.mp4'.format(video_counter)
                     video_writer = cv2.VideoWriter(output_path + video_name, fourcc, fps, (width, height))
                     save = True
                     video_counter += 1
                     for f in frame_buffer.stack:
                         video_writer.write(f)
+                    frame_counter = frame_buffer.size
                     frame_buffer.clear()
 
             elif ball_y1 > hoop_y + 5 or ball_y1 > person_y:
                 # Interrompi il salvataggio se la condizione non è soddisfatta
                 if save and not utils.check_intersection(ball, person):
-                    #print('FINE')
+                    print('FINE 2')
                     save = False
+                    video_writer.release()
+                    if frame_counter < 45:
+                        src = output_path + 'tiro_{:d}.mp4'.format(video_counter-1)
+                        dest = bin + 'tiro_{:d}.mp4'.format(video_counter-1)
+                        os.rename(src,dest)
                     frame_counter = 0
 
         if save:
@@ -124,7 +133,6 @@ while cap.isOpened():
         if not save:
             frame_buffer.push(frame)                                
                     
-video_writer.release()
+#video_writer.release()
 cap.release()
 cv2.destroyAllWindows()
-
