@@ -3,8 +3,8 @@ import numpy as np
 import os
 from ultralytics import YOLO
 import sys
-sys.path.append('C:/Users/sghe9/Desktop/CV_BasketAnalysis')
-#sys.path.append("C:/Users/alejb/Documents/GitHub/CV_BasketAnalysis")
+#sys.path.append('C:/Users/sghe9/Desktop/CV_BasketAnalysis')
+sys.path.append("C:/Users/alejb/Documents/GitHub/CV_BasketAnalysis")
 import utils
 
 
@@ -106,12 +106,12 @@ while cap.isOpened():
                     print('INIZIO')
                     height, width, channels = frame.shape
                     new_video = 'tiro_{:d}.mp4'.format(video_counter)
-                    video_writer = cv2.VideoWriter(output_path + video_name, fourcc, fps, (width, height))
+                    video_writer = cv2.VideoWriter(output_path + new_video, fourcc, fps, (width, height))
                     save = True
                     video_counter += 1
                     for f in frame_buffer.stack:
                         video_writer.write(f)
-                    frame_counter = frame_buffer.size
+                    frame_counter = frame_buffer.size()
                     frame_buffer.clear()
 
             elif ball_y1 > hoop_y + 5 or ball_y1 > person_y:
@@ -133,6 +133,6 @@ while cap.isOpened():
         if not save:
             frame_buffer.push(frame)                                
                     
-#video_writer.release()
+video_writer.release()
 cap.release()
 cv2.destroyAllWindows()
