@@ -21,7 +21,7 @@ output_path = 'video_splitter/'
 model_path = '../yolov8s_final/weights/best.pt'
 
 # Set video name
-video_name = 'IMG_4442.mp4'
+video_name = 'IMG_4444.MOV'
 
 if not os.path.exists(bin):
     os.makedirs(bin)
@@ -50,8 +50,10 @@ fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 fps = 30
 
 while cap.isOpened():
+
     # Legge un frame
     ret, frame = cap.read()
+
 
     if not ret:
         break
