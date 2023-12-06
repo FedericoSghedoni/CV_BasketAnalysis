@@ -8,10 +8,10 @@ from ultralytics import YOLO
 import sys
 
 # Get the video files in the folder
-folder_path= '../CVDataset/transformer_dataset/fuori/'
+folder_path= 'dataset/fuori/'
 classes = torch.Tensor([1., 2., 3.])
 folder = 'json/'
-dest_folder = folder + folder_path.split('/')[3] + '/'
+dest_folder = folder + folder_path.split('/')[1] + '/'
 max_length, video_name = (160,'')
 
 tok = Tokenizer(path_to_model='yolov8s_final/weights/best.pt')
