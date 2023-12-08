@@ -93,7 +93,7 @@ def TransformerTrainer():
                     outputs = transformer(inputs)
                     loss = criterion(outputs, labels)
                     epoch_losses.append(loss.item())
-            print(f">>> Epoch {epoch + 1} test loss: ", np.mean(epoch_losses))
+            print(f">>> Epoch {epoch} test loss: ", np.mean(epoch_losses))
 
             data = [epoch,np.mean(epoch_losses)]
             report(csv_test_file,data)

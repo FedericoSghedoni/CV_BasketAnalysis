@@ -1,11 +1,9 @@
 import json 
-from tokenizer import Tokenizer
 import os
 import cv2
 import torch
-from PIL import Image
-from ultralytics import YOLO
-import sys
+
+from tokenizer import Tokenizer
 
 # Get the video files in the folder
 folder_path= 'dataset/fuori/'
