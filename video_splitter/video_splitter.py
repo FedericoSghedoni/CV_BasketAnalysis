@@ -21,7 +21,7 @@ output_path = 'video_splitter/'
 model_path = '../yolov8s_final/weights/best.pt'
 
 # Set video name
-video_name = 'IMG_4440.MOV'
+video_name = 'IMG_4441.MOV'
 
 if not os.path.exists(bin):
     os.makedirs(bin)
