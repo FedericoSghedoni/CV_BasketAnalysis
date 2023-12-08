@@ -61,17 +61,15 @@ def TrasformerTrainer():
     for epoch in range(101):
         epoch_losses = []
         transformer.train()
-        # Select one video at time
         for datapoint in train_dataloader:
+            # Select one video at time
             for idx in range(datapoint['label'].shape[0]):
-                # Add a dimension for the batch dimension, in this implemantion is 1
                 inputs = datapoint['emb_fea'][idx].unsqueeze(0)
                 labels = datapoint['label'][idx]
                 inputs, labels = inputs.to(device), labels.to(device)
 
                 optimizer.zero_grad()
                 outputs = transformer(inputs)
-                # print(f'Output from the model and true label: {outputs, labels}')
                 loss = criterion(outputs, labels)
                 loss.backward()
                 optimizer.step()
@@ -83,11 +81,10 @@ def TrasformerTrainer():
 
         if epoch % 5 == 0:
             epoch_losses = []
-
             transformer.eval()
             for test_datapoint in test_dataloader:
+                # Select one video at time, repeat the same steps as before
                 for idx in range(test_datapoint['label'].shape[0]):
-                    # Select one video at time, repeat the same steps as before 
                     inputs = test_datapoint['emb_fea'][idx].unsqueeze(0)
                     labels = test_datapoint['label'][idx]   
                     inputs, labels = inputs.to(device), labels.to(device)
@@ -100,12 +97,12 @@ def TrasformerTrainer():
             data = [epoch,np.mean(epoch_losses)]
             report(csv_test_file,data)
     
-    df = pd.read_csv('train_output.csv')
+    df = pd.read_csv('result/train_output.csv')
     sns.lineplot(data=df,x='epoch',y='loss')
     plt.savefig('result/train_result.png')
 
-    df = pd.read_csv('test_output.csv')
-    sns.lineplot(data=df,x='epoch',y='loss')
+    df_test = pd.read_csv('result/test_output.csv')
+    sns.lineplot(data=df_test,x='epoch',y='loss')
     plt.savefig('result/test_result.png')
 
     return transformer
