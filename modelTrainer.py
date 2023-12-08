@@ -9,6 +9,7 @@ import csv
 
 from ultralytics import YOLO
 from transformer import Transformer
+from transformers import AutoModel
 from datasetCreator import loadDataset
 from torch.utils.data import DataLoader
 from torch.utils.data import random_split
@@ -32,7 +33,7 @@ def YoloTrainer():
     model.val()
     model.export(format="onnx")
 
-def TrasformerTrainer():
+def TransformerTrainer():
 
     csv_train_file = 'result/train_output.csv'
     csv_test_file = 'result/test_output.csv'
@@ -58,7 +59,7 @@ def TrasformerTrainer():
         csvwriter = csv.writer(csvfile)
         csvwriter.writerows([['epoch','loss']])
 
-    for epoch in range(101):
+    for epoch in range(100):
         epoch_losses = []
         transformer.train()
         for datapoint in train_dataloader:
@@ -81,7 +82,7 @@ def TrasformerTrainer():
 
         if epoch % 5 == 0:
             epoch_losses = []
-            transformer.eval()
+            # transformer.eval()
             for test_datapoint in test_dataloader:
                 # Select one video at time, repeat the same steps as before
                 for idx in range(test_datapoint['label'].shape[0]):
@@ -92,7 +93,7 @@ def TrasformerTrainer():
                     outputs = transformer(inputs)
                     loss = criterion(outputs, labels)
                     epoch_losses.append(loss.item())
-            print(f">>> Epoch {epoch} test loss: ", np.mean(epoch_losses))
+            print(f">>> Epoch {epoch + 1} test loss: ", np.mean(epoch_losses))
 
             data = [epoch,np.mean(epoch_losses)]
             report(csv_test_file,data)
@@ -105,7 +106,14 @@ def TrasformerTrainer():
     sns.lineplot(data=df_test,x='epoch',y='loss')
     plt.savefig('result/test_result.png')
 
+    # Save the trained model to a directory
+    model_directory = 'result/transformer'
+    transformer.save_pretrained(model_directory)
+
     return transformer
 
 if __name__ == '__main__':
-    TrasformerTrainer()
+    TransformerTrainer()
+    # Load the saved model from the directory
+    model_directory = 'result/transformer'
+    loaded_transformer = AutoModel.from_pretrained(model_directory)
