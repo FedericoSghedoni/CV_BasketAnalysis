@@ -9,7 +9,6 @@ import csv
 
 from ultralytics import YOLO
 from transformer import Transformer
-from transformers import AutoModel
 from datasetCreator import loadDataset
 from torch.utils.data import DataLoader
 from torch.utils.data import random_split
@@ -33,23 +32,29 @@ def YoloTrainer():
     model.val()
     model.export(format="onnx")
 
-def TransformerTrainer():
+def TransformerTrainer(pretrained_model=False):
 
     csv_train_file = 'result/train_output.csv'
     csv_test_file = 'result/test_output.csv'
     transformer = Transformer(tgt_size=1, n_feature=9,  d_model=160)
 
+    if pretrained_model != False:
+        transformer.load_state_dict(torch.load(pretrained_model))
+
     # We use the Binary Cross Entropy since we have a 2 class problem
     criterion = nn.BCELoss()
     optimizer = optim.Adam(transformer.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
+    # optimizer = optim.SGD(transformer.parameters(), lr=0.01, momentum=0.9)
 
     dataset = loadDataset(verbose=False)
     train_split = int(0.8 * len(dataset))
     train, test = random_split(dataset, [train_split, len(dataset) - train_split])
 
-    train_dataloader = DataLoader(train, batch_size=32)
-    test_dataloader = DataLoader(test, batch_size=32)
+    train_dataloader = DataLoader(train, batch_size=64, shuffle=True)
+    test_dataloader = DataLoader(test, batch_size=64)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    transformer.to(device)
 
     with open(csv_train_file, 'w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile)
@@ -82,17 +87,18 @@ def TransformerTrainer():
 
         if epoch % 5 == 0:
             epoch_losses = []
-            # transformer.eval()
-            for test_datapoint in test_dataloader:
-                # Select one video at time, repeat the same steps as before
-                for idx in range(test_datapoint['label'].shape[0]):
-                    inputs = test_datapoint['emb_fea'][idx].unsqueeze(0)
-                    labels = test_datapoint['label'][idx]   
-                    inputs, labels = inputs.to(device), labels.to(device)
+            transformer.eval()
+            with torch.no_grad():
+                for test_datapoint in test_dataloader:
+                    # Select one video at time, repeat the same steps as before
+                    for idx in range(test_datapoint['label'].shape[0]):
+                        inputs = test_datapoint['emb_fea'][idx].unsqueeze(0)
+                        labels = test_datapoint['label'][idx]   
+                        inputs, labels = inputs.to(device), labels.to(device)
 
-                    outputs = transformer(inputs)
-                    loss = criterion(outputs, labels)
-                    epoch_losses.append(loss.item())
+                        outputs = transformer(inputs)
+                        loss = criterion(outputs, labels)
+                        epoch_losses.append(loss.item())
             print(f">>> Epoch {epoch} test loss: ", np.mean(epoch_losses))
 
             data = [epoch,np.mean(epoch_losses)]
@@ -106,14 +112,13 @@ def TransformerTrainer():
     sns.lineplot(data=df_test,x='epoch',y='loss')
     plt.savefig('result/test_result.png')
 
-    # Save the trained model to a directory
-    model_directory = 'result/transformer'
-    transformer.save_pretrained(model_directory)
-
     return transformer
 
 if __name__ == '__main__':
-    TransformerTrainer()
+    model_directory = 'result/model.pt'
+    model = TransformerTrainer(pretrained_model=False)
+    # Save the trained model to a directory
+    torch.save(model.state_dict(), model_directory)
+
     # Load the saved model from the directory
-    model_directory = 'result/transformer'
-    loaded_transformer = AutoModel.from_pretrained(model_directory)
+    # transformer.load_state_dict(torch.load(model_directory))

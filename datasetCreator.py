@@ -1,9 +1,7 @@
 import json
 import os
-import cv2
 import torch
 from torch.utils.data import Dataset
-from tokenizer import Tokenizer
 
 class BasketDataset(Dataset):
     def __init__(self, root_dir):
