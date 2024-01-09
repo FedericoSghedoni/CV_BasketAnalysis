@@ -1,13 +1,19 @@
 import cv2
+import numpy as np
+import torch
 
 from kalmanFilter import Kalman
+from transformer import Transformer
 from tokenizer import Tokenizer
 
 # Main Loop
 
 model_path = 'yolov8s_final/weights/best.pt'
+model_directory = 'result/model.pt'
+# input tensor dimension for the transformer
+input_dimension = 160
 
-cap = cv2.VideoCapture('dataset/canestro/video1.mp4')
+cap = cv2.VideoCapture('../CVDataset/transformer_dataset/fuori/tiro_56.mp4')
 ret, frame = cap.read()
 
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
@@ -18,6 +24,7 @@ video_writer = cv2.VideoWriter('video_detections2.mp4', fourcc, fps, (frame_widt
 i = 0
 
 tokenizer = Tokenizer(model_path)
+transformer = Transformer(tgt_size=1, n_feature=9,  d_model=160)
 kalman_filter = Kalman(height=frame_height, width=frame_width)
 
 while cap.isOpened():
@@ -40,8 +47,16 @@ while cap.isOpened():
             kalman_filter.makePrediction(x,y)
     video_writer.write(new_frame)
 
+pad_width = ((0, input_dimension - tokenizer.embedded_feature.shape[0]), (0, 0))
+input_tens = np.pad(tokenizer.embedded_feature, pad_width, mode='constant', constant_values=0)
+
+# Load the saved model from the directory
+transformer.load_state_dict(torch.load(model_directory, map_location=torch.device('cpu')))
+with torch.no_grad():
+    output = transformer(torch.tensor(input_tens))
+    print(output)
+
 video_writer.release()
 cap.release()
 cv2.destroyAllWindows()
-print(tokenizer.embedded_feature)
-kalman_filter.showPrediction()
+# kalman_filter.showPrediction()
