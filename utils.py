@@ -1,7 +1,12 @@
+import csv
 import math
 import cv2
+from matplotlib import pyplot as plt
+import pandas as pd
+from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
 from ultralytics import YOLO
 import numpy as np
+import seaborn as sns
 
 Path = 'distance/'
 model_path = '../yolov8s_final/weights/best.pt'
@@ -197,3 +202,36 @@ class Buffer:
     
     def clear(self):
         self.stack = []
+
+def report(csv_file,data):
+    # Write data to the CSV file
+    with open(csv_file, 'r') as csvfile:
+        csvreader = csv.reader(csvfile)
+        existing_data = list(csvreader)
+    existing_data.append(data)
+    with open(csv_file, 'w', newline='') as csvfile:
+        csvwriter = csv.writer(csvfile)
+        csvwriter.writerows(existing_data)
+
+def result_graph(result_path, true_labels_train, true_labels_test, predictions_train, predictions_test):
+    df = pd.read_csv(f'{result_path}train_output.csv')
+    plt.figure()
+    sns.lineplot(data=df,x='epoch',y='loss')
+
+    df_test = pd.read_csv(f'{result_path}test_output.csv')
+    sns.lineplot(data=df_test,x='epoch',y='loss')
+    plt.savefig(f'{result_path}test_result.png')
+
+    # Calculate confusion matrix
+    plt.figure()
+    cm_train = confusion_matrix(true_labels_train, predictions_train)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm_train, display_labels=['canestro','fuori'])
+    disp.plot()
+    plt.savefig(f'{result_path}cm_train.png')
+
+    # Calculate confusion matrix
+    plt.figure()
+    cm_test = confusion_matrix(true_labels_test, predictions_test)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm_test, display_labels=['canestro','fuori'])
+    disp.plot()
+    plt.savefig(f'{result_path}cm_test.png')

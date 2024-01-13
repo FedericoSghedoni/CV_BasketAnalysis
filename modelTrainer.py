@@ -1,7 +1,4 @@
 import numpy as np
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
 import torch.nn as nn
 import torch.optim as optim
 import torch
@@ -9,20 +6,10 @@ import csv
 
 from ultralytics import YOLO
 from transformer import Transformer
+from utils import report, result_graph
 from datasetCreator import loadDataset
 from torch.utils.data import DataLoader
 from torch.utils.data import random_split
-from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
-
-def report(csv_file,data):
-    # Write data to the CSV file
-    with open(csv_file, 'r') as csvfile:
-        csvreader = csv.reader(csvfile)
-        existing_data = list(csvreader)
-    existing_data.append(data)
-    with open(csv_file, 'w', newline='') as csvfile:
-        csvwriter = csv.writer(csvfile)
-        csvwriter.writerows(existing_data)
 
 def YoloTrainer():
     # Load a model
@@ -33,9 +20,10 @@ def YoloTrainer():
     model.val()
     model.export(format="onnx")
 
-def TransformerTrainer(pretrained_model=False, learning_rate=0.001, nhead=4, dropout_rate=0.1, num_layers=1):
-    csv_train_file = 'result/train_output.csv'
-    csv_test_file = 'result/test_output.csv'
+def TransformerTrainer(pretrained_model=False, learning_rate=0.001, nhead=4, dropout_rate=0.1, num_layers=1, batch_size=32):
+    result_path = 'result/'
+    csv_train_file = f'{result_path}train_output.csv'
+    csv_test_file = f'{result_path}test_output.csv'
     transformer = Transformer(tgt_size=1, n_feature=9,  d_model=160, nhead=nhead, dropout_rate=dropout_rate, num_layers=num_layers)
 
     if pretrained_model != False:
@@ -47,7 +35,6 @@ def TransformerTrainer(pretrained_model=False, learning_rate=0.001, nhead=4, dro
     optimizer = optim.SGD(transformer.parameters(), lr=learning_rate, momentum=0.9)
 
     dataset = loadDataset(verbose=False)
-    batch_size = 32
     train_split = int(0.8 * len(dataset))
     train, test = random_split(dataset, [train_split, len(dataset) - train_split])
 
@@ -113,34 +100,15 @@ def TransformerTrainer(pretrained_model=False, learning_rate=0.001, nhead=4, dro
 
             data = [epoch,np.mean(epoch_losses)]
             report(csv_test_file,data)
-    
-    df = pd.read_csv('result/train_output.csv')
-    sns.lineplot(data=df,x='epoch',y='loss')
-    plt.savefig('result/train_result.png')
 
-    df_test = pd.read_csv('result/test_output.csv')
-    sns.lineplot(data=df_test,x='epoch',y='loss')
-    plt.savefig('result/test_result.png')
-
-    # Calculate confusion matrix
-    cm_train = confusion_matrix(true_labels_train, predictions_train)
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm_train, display_labels=['canestro','fuori'])
-    disp.plot()
-    plt.savefig('result/cm_train.png')
-
-    # Calculate confusion matrix
-    cm_test = confusion_matrix(true_labels_test, predictions_test)
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm_test, display_labels=['canestro','fuori'])
-    disp.plot()
-    plt.savefig('result/cm_test.png')
+    result_graph(result_path, true_labels_train, true_labels_test, predictions_train, predictions_test)
 
     return transformer
 
 if __name__ == '__main__':
-    model_directory = 'result/model.pt'
-    model = TransformerTrainer(pretrained_model=False)
+    # Create and train your model with the current hyperparameters
+    model = TransformerTrainer(batch_size=64,dropout_rate=0.5,learning_rate=0.0002,num_layers=2)
+    
     # Save the trained model to a directory
+    model_directory = f'result/model.pt'
     torch.save(model.state_dict(), model_directory)
-
-    # Load the saved model from the directory
-    # transformer.load_state_dict(torch.load(model_directory))
