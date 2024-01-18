@@ -13,7 +13,7 @@ model_directory = 'result/model.pt'
 # input tensor dimension for the transformer
 input_dimension = 160
 
-cap = cv2.VideoCapture('../CVDataset/transformer_dataset/fuori/tiro_56.mp4')
+cap = cv2.VideoCapture('../CVDataset/transformer_dataset/canestro/3.mp4')
 ret, frame = cap.read()
 
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')

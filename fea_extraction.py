@@ -58,7 +58,7 @@ for video_file in [f for f in os.listdir(folder_path) if f.endswith('.mp4')]:
             # Ritagliare l'immagine: taglia 190 pixel dall'alto e 370 dal basso
             frame = frame[190:frame.shape[:2][0]-370, :]
         if show:
-            cv2.imshow('belllaaaa',frame)
+            cv2.imshow('sample',frame)
             cv2.waitKey(0)
             show=False
         # pass all the frames to the tokenizer to get the embedded features

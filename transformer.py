@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
     
 class Transformer(nn.Module):
-    def __init__(self, tgt_size, n_feature, d_model, nhead=4, dropout_rate=0.1, num_layers=1):
+    def __init__(self, tgt_size, n_feature, d_model, nhead=4, dropout_rate=0.1, num_layers=2):
         super(Transformer, self).__init__()
 
         self.to_embed = nn.Linear(n_feature, d_model)
@@ -16,7 +16,7 @@ class Transformer(nn.Module):
         torch.nn.init.xavier_normal_(self.pos_emb)
 
         # learnable class token
-        # $> initialized as N(0, 0.02)
+        # $> initialized as N(0.5, 0.02)
         self.class_token = nn.Parameter(torch.normal(
             mean=0.5, std=0.02,
             size=(1, d_model)
