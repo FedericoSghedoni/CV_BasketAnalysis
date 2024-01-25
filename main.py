@@ -13,7 +13,7 @@ model_directory = 'result/model.pt'
 # input tensor dimension for the transformer
 input_dimension = 160
 
-cap = cv2.VideoCapture('../CVDataset/transformer_dataset/canestro/3.mp4')
+cap = cv2.VideoCapture('../CVDataset/transformer_dataset/fuori/2.mp4')
 ret, frame = cap.read()
 
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
@@ -21,14 +21,15 @@ fps = 24
 frame_width = frame.shape[1]
 frame_height = frame.shape[0]
 video_writer = cv2.VideoWriter('video_detections2.mp4', fourcc, fps, (frame_width, frame_height))
-i = 0
 
 tokenizer = Tokenizer(model_path)
 transformer = Transformer(tgt_size=1, n_feature=9,  d_model=160)
 kalman_filter = Kalman(height=frame_height, width=frame_width)
 
+framesTBW = []
+
 while cap.isOpened():
-    i += 1
+
     ret, frame = cap.read()
     if not ret: # or i == 10:
         break
@@ -45,7 +46,7 @@ while cap.isOpened():
             # Get the bounding box coordinates
             x,y = result.xywh[0,0:2]
             kalman_filter.makePrediction(x,y)
-    video_writer.write(new_frame)
+    framesTBW.append(new_frame)
 
 pad_width = ((0, input_dimension - tokenizer.embedded_feature.shape[0]), (0, 0))
 input_tens = np.pad(tokenizer.embedded_feature, pad_width, mode='constant', constant_values=0)
@@ -54,7 +55,19 @@ input_tens = np.pad(tokenizer.embedded_feature, pad_width, mode='constant', cons
 transformer.load_state_dict(torch.load(model_directory, map_location=torch.device('cpu')))
 with torch.no_grad():
     output = transformer(torch.tensor(input_tens))
+    text_x = frame_width // 3
+    text_y = 200  
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    if output[0] <= 0.5:
+        for frame in framesTBW[-30:-1]:
+            cv2.putText(frame, 'Canestro', (text_x, text_y), font, 3, (255, 0, 0), 4)
+    else:
+        for frame in framesTBW[-30:-1]:
+            cv2.putText(frame, 'Fuori', (text_x, text_y), font, 3, (255, 0, 0), 4)
     print(output)
+
+for frame in framesTBW:
+    video_writer.write(frame)
 
 video_writer.release()
 cap.release()

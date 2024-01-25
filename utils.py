@@ -83,7 +83,7 @@ def checkRoi(pp_data, emb):
         mean_dist = np.linalg.norm(diff_m)
         sum_dist = eucl_dist + mean_dist / 3.2
         #print(f'{val[2][1]} count {key}')
-        print(f'{eucl_dist} eucl_dist {mean_dist} mean_eucl {sum_dist} sum_dist {key}')
+        #print(f'{eucl_dist} eucl_dist {mean_dist} mean_eucl {sum_dist} sum_dist {key}')
         if eucl_dist < dist_min:
             dist_min = eucl_dist
             key_min = key
