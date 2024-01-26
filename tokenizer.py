@@ -34,7 +34,8 @@ class Tokenizer():
         self.detector = YOLO(path_to_model)
         self.pose = YOLO('yolov8n-pose.pt')
         
-        self.colors = [(56,56,255), (151,157,255), (31,112,255)]               
+        self.colors = [(56,56,255), (151,157,255), (31,112,255)] 
+        self.labels = ['basketball', 'people', 'rim']              
         self.measured_distance = 1       
         self.real_width = [0.225, 0.49]
         self.real_distance = [0, 0, 0, 0]
@@ -93,7 +94,7 @@ class Tokenizer():
     def getDistance(self, results, frame):    
         
         for r in results:
-            im_array = r.plot()  # plot a BGR numpy array of predictions
+            #im_array = r.plot()  # plot a BGR numpy array of predictions
             count = [0, 0, 0]
             count[0] = r.boxes.cls.tolist().count(0.0)
             count[1] = r.boxes.cls.tolist().count(1.0)
@@ -107,14 +108,19 @@ class Tokenizer():
                             
             # Itera su ogni riga del tensore
             for row in r.boxes:
+                cv2.rectangle(frame, (int(row.data.tolist()[0][0]), int(row.data.tolist()[0][1])), (int(row.data.tolist()[0][2]), int(row.data.tolist()[0][3])), 
+                          self.colors[int(row.data.tolist()[0][-1])], 2)
+                cv2.putText(frame, self.labels[int(row.data.tolist()[0][-1])], (int(row.data.tolist()[0][0]), int(row.data.tolist()[0][1]) - 7), 
+                              cv2.FONT_HERSHEY_SIMPLEX, 0.6, self.colors[int(row.data.tolist()[0][-1])], 2)
+                
                 if row.data.tolist()[0][-1] == 0.0:
                     # Crea una lista per la riga corrente e aggiungi i valori
                     riga_box = row.xywh.tolist()[0][:] + [row.data.tolist()[0][-1]]
                     distance = self.focal_length * self.real_width[0] / riga_box[2]
                     self.real_distance[0] = utils.updateDistance(self.real_distance[0], distance, self.real_distance[2])
                     self.real_distance[2] = 0
-                    cv2.putText(im_array, f'C-dist: {self.real_distance[0]:.1f} m', (int(riga_box[0]- (riga_box[2]/2)), int(riga_box[1] - (riga_box[3]/2) - 30)), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, self.colors[0], 2)
+                    #cv2.putText(im_array, f'C-dist: {self.real_distance[0]:.1f} m', (int(riga_box[0]- (riga_box[2]/2)), int(riga_box[1] - (riga_box[3]/2) - 30)), 
+                    #            cv2.FONT_HERSHEY_SIMPLEX, 0.6, self.colors[0], 2)
                     
                 elif row.data.tolist()[0][-1] == 1.0:
                     p_h = 0 # person height
@@ -138,10 +144,10 @@ class Tokenizer():
                     self.pp_data[id][2][0] = utils.updateDistance(self.pp_data[id][2][0], distance, self.pp_data[id][2][1])
                     # azzero contatore emb
                     self.pp_data[id][2][1] = 0
-                    cv2.putText(im_array, f'{id} C-dist: {self.pp_data[id][2][0]:.1f} m', (int(riga_box[0]- (riga_box[2]/2)), int(riga_box[1] - (riga_box[3]/2) - 30)), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, self.colors[1], 2)
-                    cv2.putText(im_array, f'{id} h: {self.pp_data[id][1][0]:.2f} m', (int(riga_box[0]- (riga_box[2]/2)), int(riga_box[1] - (riga_box[3]/2) - 70)), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, self.colors[1], 2)
+                    #cv2.putText(im_array, f'{id} C-dist: {self.pp_data[id][2][0]:.1f} m', (int(riga_box[0]- (riga_box[2]/2)), int(riga_box[1] - (riga_box[3]/2) - 30)), 
+                    #            cv2.FONT_HERSHEY_SIMPLEX, 0.6, self.colors[1], 2)
+                    #cv2.putText(im_array, f'{id} h: {self.pp_data[id][1][0]:.2f} m', (int(riga_box[0]- (riga_box[2]/2)), int(riga_box[1] - (riga_box[3]/2) - 70)), 
+                    #            cv2.FONT_HERSHEY_SIMPLEX, 0.6, self.colors[1], 2)
                     
                     if count[2] == 1 and self.pp_data[id][2][0] != 0 and self.real_distance[1] != 0:
                         rim_box = [box.xywh.tolist()[0] for box in r.boxes if box.data.tolist()[0][-1] == 2.0][0] 
@@ -159,10 +165,11 @@ class Tokenizer():
                         self.pp_data[id][3][0] = utils.updateDistance(self.pp_data[id][3][0], d, self.pp_data[id][3][1])
                         self.pp_data[id][3][1] = 0
                         # Visualizza la distanza sul frame
-                        cv2.putText(im_array, f'{id} R-dist: {self.pp_data[id][3][0]:.1f} m', (int(riga_box[0]- (riga_box[2]/2)), int(riga_box[1] - (riga_box[3]/2) - 50)), 
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-                        
-                    #print(f'{self.pp_data, id} self.pp_data, id')  
+                        #cv2.putText(im_array, f'{id} R-dist: {self.pp_data[id][3][0]:.1f} m', (int(riga_box[0]- (riga_box[2]/2)), int(riga_box[1] - (riga_box[3]/2) - 50)), 
+                        #            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+                        cv2.putText(frame, f'{id} R-dist: {self.pp_data[id][3][0]:.1f} m', (int(riga_box[0]- (riga_box[2]/2)), int(riga_box[1] - (riga_box[3]/2) - 24)), 
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, self.colors[1], 2)
+                          
                                 
                 elif row.data.tolist()[0][-1] == 2.0:
                     # Crea una lista per la riga corrente e aggiungi i valori
@@ -170,9 +177,9 @@ class Tokenizer():
                     distance = self.focal_length * self.real_width[1] / riga_box[2]
                     self.real_distance[1] = utils.updateDistance(self.real_distance[1], distance, self.real_distance[3])
                     self.real_distance[3] = 0
-                    cv2.putText(im_array, f'C-dist: {self.real_distance[1]:.1f} m', (int(riga_box[0] - (riga_box[2]/2)), int(riga_box[1] - (riga_box[3]/2) - 30)), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, self.colors[2], 2)
+                    #cv2.putText(im_array, f'C-dist: {self.real_distance[1]:.1f} m', (int(riga_box[0] - (riga_box[2]/2)), int(riga_box[1] - (riga_box[3]/2) - 30)), 
+                    #            cv2.FONT_HERSHEY_SIMPLEX, 0.6, self.colors[2], 2)
 
         cv2.destroyAllWindows()
-        return self.pp_data, im_array
+        return self.pp_data, frame
 
