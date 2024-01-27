@@ -13,14 +13,14 @@ model_directory = 'result/model.pt'
 # input tensor dimension for the transformer
 input_dimension = 160
 
-cap = cv2.VideoCapture('../CVDataset/transformer_dataset/fuori/2.mp4')
+cap = cv2.VideoCapture('../CVDataset/transformer_dataset/fuori/num_60.mp4')
 ret, frame = cap.read()
 
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 fps = 24
 frame_width = frame.shape[1]
 frame_height = frame.shape[0]
-video_writer = cv2.VideoWriter('video_detections2.mp4', fourcc, fps, (frame_width, frame_height))
+video_writer = cv2.VideoWriter('video_detections3.mp4', fourcc, fps, (frame_width, frame_height))
 
 tokenizer = Tokenizer(model_path)
 transformer = Transformer(tgt_size=1, n_feature=9,  d_model=160)
