@@ -13,7 +13,7 @@ model_directory = 'result/model.pt'
 # input tensor dimension for the transformer
 input_dimension = 160
 
-cap = cv2.VideoCapture('../CVDataset/transformer_dataset/fuori/num_60.mp4')
+cap = cv2.VideoCapture('RESULTS.mp4')
 ret, frame = cap.read()
 
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
@@ -48,7 +48,7 @@ while cap.isOpened():
             kalman_filter.makePrediction(x,y)
     framesTBW.append(new_frame)
 
-pad_width = ((0, input_dimension - tokenizer.embedded_feature.shape[0]), (0, 0))
+'''pad_width = ((0, input_dimension - tokenizer.embedded_feature.shape[0]), (0, 0))
 input_tens = np.pad(tokenizer.embedded_feature, pad_width, mode='constant', constant_values=0)
 
 # Load the saved model from the directory
@@ -64,7 +64,7 @@ with torch.no_grad():
     else:
         for frame in framesTBW[-30:-1]:
             cv2.putText(frame, 'Fuori', (text_x, text_y), font, 3, (255, 0, 0), 4)
-    print(output)
+    print(output)'''
 
 for frame in framesTBW:
     video_writer.write(frame)
