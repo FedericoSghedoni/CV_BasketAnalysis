@@ -5,6 +5,7 @@ import torch
 import csv
 
 from ultralytics import YOLO
+from torch.optim import lr_scheduler
 from transformer import Transformer
 from utils import report, result_graph
 from datasetCreator import loadDataset
@@ -33,6 +34,9 @@ def TransformerTrainer(pretrained_model=False, learning_rate=0.001, nhead=4, dro
     criterion = nn.BCELoss()
     # optimizer = optim.AdamW(transformer.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
     optimizer = optim.SGD(transformer.parameters(), lr=learning_rate, momentum=0.9)
+    
+    # Define the learning rate scheduler
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=25, gamma=0.6)
 
     dataset = loadDataset(verbose=False)
     train_split = int(0.8 * len(dataset))
@@ -70,6 +74,8 @@ def TransformerTrainer(pretrained_model=False, learning_rate=0.001, nhead=4, dro
                 loss = criterion(outputs, labels)
                 loss.backward()
                 optimizer.step()
+                # Update the learning rate
+                scheduler.step()
                 epoch_losses.append(loss.item())
                 if epoch == 100:
                     predictions_train.append(round(outputs.item()))
